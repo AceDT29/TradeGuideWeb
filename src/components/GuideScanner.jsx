@@ -6,19 +6,53 @@ const GUIDE_LENGTH = 10;
  * GuideScanner — always-focused input that captures barcode scanner events.
  * Filters out non-numeric characters, validates exactly 10 digits on Enter.
  */
-export default function GuideScanner({ onAdd, onError }) {
+export default function GuideScanner({ onAdd, onError, disabled = false }) {
   const [value, setValue] = useState('');
+  const valueRef = useRef(value);
   const [shake, setShake] = useState(false);
   const [focused, setFocus] = useState(true);
   const inputRef = useRef(null);
 
+  // Keep valueRef synced for the global keydown listener
+  useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
+
   // Keep focus on the input whenever the user clicks anywhere
   useEffect(() => {
+    if (disabled) return;
     const refocus = () => setTimeout(() => inputRef.current?.focus(), 50);
     document.addEventListener('click', refocus);
     inputRef.current?.focus();
     return () => document.removeEventListener('click', refocus);
-  }, []);
+  }, [disabled]);
+
+  // Global keydown listener to capture barcode scanner input even when focus is lost
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if (disabled) return;
+
+      // If we are already focused on the input, let its own handlers deal with the event
+      if (document.activeElement === inputRef.current) return;
+
+      // Ignore complex key combos
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      if (/^\d$/.test(e.key)) {
+        e.preventDefault();
+        setValue(prev => (prev + e.key).slice(0, GUIDE_LENGTH));
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        submitValue(valueRef.current);
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        setValue(prev => prev.slice(0, -1));
+      }
+    };
+
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [disabled, onAdd, onError]);
 
   const handleChange = (e) => {
     // Strip non-digits, cap at 10 chars
@@ -33,8 +67,13 @@ export default function GuideScanner({ onAdd, onError }) {
     }
   };
 
-  const submit = () => {
-    const trimmed = value.trim();
+  const triggerShake = () => {
+    setShake(true);
+    setTimeout(() => setShake(false), 450);
+  };
+
+  const submitValue = (val) => {
+    const trimmed = val.trim();
 
     if (trimmed.length === 0) return;
 
@@ -50,10 +89,7 @@ export default function GuideScanner({ onAdd, onError }) {
     setValue('');
   };
 
-  const triggerShake = () => {
-    setShake(true);
-    setTimeout(() => setShake(false), 450);
-  };
+  const submit = () => submitValue(value);
 
   const progress = (value.length / GUIDE_LENGTH) * 100;
   const isFull = value.length === GUIDE_LENGTH;
@@ -82,6 +118,7 @@ export default function GuideScanner({ onAdd, onError }) {
           id="guide-input"
           ref={inputRef}
           type="text"
+          disabled={disabled}
           inputMode="numeric"
           autoComplete="off"
           autoCorrect="off"
@@ -98,6 +135,7 @@ export default function GuideScanner({ onAdd, onError }) {
             font-mono-guide text-lg text-slate-900/60
             placeholder:text-slate-700 placeholder:font-sans placeholder:text-base
             bg-slate-100/80 outline-none transition-all duration-200
+            disabled:opacity-50 disabled:cursor-not-allowed
             ${shake
               ? 'border-2 border-red-500/80 shadow-[0_0_0_3px_rgba(239,68,68,0.15)]'
               : focused

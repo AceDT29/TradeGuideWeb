@@ -15,6 +15,12 @@ export default function App() {
   // ── Event handlers ────────────────────────────────────────
 
   const handleAdd = (code) => {
+    const isDuplicate = guides.some(g => g.code === code);
+    if (isDuplicate) {
+      addToast(`La guía ${code} ya ha sido registrada`, 'error');
+      return;
+    }
+
     addGuide(code);
     addToast(`Guía ${code} registrada`, 'success');
   };
@@ -63,6 +69,7 @@ export default function App() {
         <GuideScanner
           onAdd={handleAdd}
           onError={handleError}
+          disabled={showClearModal}
         />
 
         <GuideTable
