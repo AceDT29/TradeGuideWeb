@@ -77,11 +77,18 @@ export default function GuideScanner({ onAdd, onError, disabled = false }) {
 
     if (trimmed.length === 0) return;
 
-    if (trimmed.length !== GUIDE_LENGTH) {
-      onError(
-        `Guía inválida: se esperan ${GUIDE_LENGTH} dígitos, se recibieron ${trimmed.length}.`
-      );
+    // Validación estricta para guías Zoom:
+    // - 9 dígitos que empiezan con 9 (ej: 980400009)
+    // - 10 dígitos que empiezan con 1 (ej: 1680635235, 1314517890)
+    const isValidZoomGuide = /^(9\d{8}|1\d{9})$/.test(trimmed);
+
+    if (!isValidZoomGuide) {
+      const audio = new Audio('/audio/error-voice.mp3');
+      audio.play().catch(e => console.log('Audio error:', e));
+
+      onError(`Código ignorado (no es una guía válida de Zoom): ${trimmed}`);
       triggerShake();
+      setValue('');
       return;
     }
 
