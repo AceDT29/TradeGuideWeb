@@ -1,16 +1,16 @@
 import { useState } from 'react';
-import Navbar        from './components/Navbar';
-import GuideScanner  from './components/GuideScanner';
-import GuideTable    from './components/GuideTable';
+import Navbar from './components/Navbar';
+import GuideScanner from './components/GuideScanner';
+import GuideTable from './components/GuideTable';
 import ClearAllModal from './components/ClearAllModal';
-import Toast         from './components/Toast';
+import Toast from './components/Toast';
 import { useGuides } from './customHooks/useGuides';
-import { useToast }  from './customHooks/useToast';
+import { useToast } from './customHooks/useToast';
 
 export default function App() {
   const { guides, addGuide, removeGuide, clearAll } = useGuides();
-  const { toasts, addToast, removeToast }           = useToast();
-  const [showClearModal, setShowClearModal]          = useState(false);
+  const { toasts, addToast, removeToast } = useToast();
+  const [showClearModal, setShowClearModal] = useState(false);
 
   // ── Event handlers ────────────────────────────────────────
 
@@ -56,7 +56,7 @@ export default function App() {
   // ── Render ────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#080b11]">
+    <div className="min-h-screen bg-[#4172d5]">
       <Navbar />
 
       <main className="max-w-4xl mx-auto px-4 py-5">

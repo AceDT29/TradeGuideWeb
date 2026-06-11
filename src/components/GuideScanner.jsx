@@ -7,10 +7,10 @@ const GUIDE_LENGTH = 10;
  * Filters out non-numeric characters, validates exactly 10 digits on Enter.
  */
 export default function GuideScanner({ onAdd, onError }) {
-  const [value, setValue]   = useState('');
-  const [shake, setShake]   = useState(false);
+  const [value, setValue] = useState('');
+  const [shake, setShake] = useState(false);
   const [focused, setFocus] = useState(true);
-  const inputRef            = useRef(null);
+  const inputRef = useRef(null);
 
   // Keep focus on the input whenever the user clicks anywhere
   useEffect(() => {
@@ -56,13 +56,13 @@ export default function GuideScanner({ onAdd, onError }) {
   };
 
   const progress = (value.length / GUIDE_LENGTH) * 100;
-  const isFull   = value.length === GUIDE_LENGTH;
+  const isFull = value.length === GUIDE_LENGTH;
 
   return (
     <section className="mb-8 animate-fadeInUp">
       <label
         htmlFor="guide-input"
-        className="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3"
+        className="block text-xs font-semibold text-slate-100 uppercase tracking-widest mb-3"
       >
         Número de Guía
       </label>
@@ -95,13 +95,13 @@ export default function GuideScanner({ onAdd, onError }) {
           maxLength={GUIDE_LENGTH}
           className={`
             w-full pl-14 pr-20 py-5 rounded-2xl
-            font-mono-guide text-lg text-slate-100
+            font-mono-guide text-lg text-slate-900/60
             placeholder:text-slate-700 placeholder:font-sans placeholder:text-base
-            bg-[#0d1320] outline-none transition-all duration-200
+            bg-slate-100/80 outline-none transition-all duration-200
             ${shake
               ? 'border-2 border-red-500/80 shadow-[0_0_0_3px_rgba(239,68,68,0.15)]'
               : focused
-                ? 'border-2 border-cyan-500/70 shadow-[0_0_0_3px_rgba(34,211,238,0.12)] animate-pulseGlow'
+                ? 'border-2 border-blue-900/70 shadow-[0_0_0_3px_rgba(34,211,238,0.12)] animate-pulseGlow'
                 : 'border-2 border-[#1e3a5f]/60'
             }
           `}
@@ -114,26 +114,24 @@ export default function GuideScanner({ onAdd, onError }) {
           `}
         >
           <span
-            className={`text-sm font-mono-guide font-medium transition-colors ${
-              isFull ? 'text-emerald-400' : value.length > 0 ? 'text-cyan-400' : 'text-slate-600'
-            }`}
+            className={`text-sm font-mono-guide font-medium transition-colors ${isFull ? 'text-emerald-600/90' : value.length > 0 ? 'text-slate-900' : 'text-slate-600'
+              }`}
           >
             {value.length}/{GUIDE_LENGTH}
           </span>
         </div>
 
         {/* Bottom progress bar */}
-        <div className="absolute bottom-0 left-4 right-4 h-[2px] rounded-full overflow-hidden bg-[#1e3a5f]/40">
+        <div className="absolute bottom-0 left-4 right-4 h-[4px] rounded-full overflow-hidden bg-slate-50/40">
           <div
-            className={`h-full rounded-full transition-all duration-150 ${
-              isFull ? 'bg-emerald-400' : 'bg-cyan-500'
-            }`}
+            className={`h-full rounded-full transition-all duration-150 ${isFull ? 'bg-blue-400/70' : 'bg-green-600/70'
+              }`}
             style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
-      <p className="mt-2.5 ml-1 text-xs text-slate-600">
+      <p className="mt-2.5 ml-1 text-xs text-slate-100">
         Presiona{' '}
         <kbd className="px-1.5 py-0.5 rounded bg-[#1e3a5f]/60 text-slate-400 font-mono-guide text-[11px]">
           Enter
@@ -152,8 +150,8 @@ function ScanIcon() {
       <path d="M17 3h2a2 2 0 0 1 2 2v2" />
       <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
       <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
-      <line x1="7"  y1="12" x2="7"  y2="12" />
-      <line x1="12" y1="8"  x2="12" y2="16" />
+      <line x1="7" y1="12" x2="7" y2="12" />
+      <line x1="12" y1="8" x2="12" y2="16" />
       <line x1="17" y1="12" x2="17" y2="12" />
       <rect x="9" y="10" width="6" height="4" rx="1" />
     </svg>

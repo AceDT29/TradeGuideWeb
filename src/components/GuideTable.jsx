@@ -1,19 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import GuideRow from './GuideRow';
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 10;
 
 /**
- * GuideTable — paginated data table (12 guides/page) with header actions.
+ * GuideTable — paginated data table (10 guides/page) with header actions.
  * Auto-advances to the last page whenever a new guide is added.
  */
 export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onClearAll }) {
   const [currentPage, setCurrentPage] = useState(1);
-  const prevLengthRef                  = useRef(guides.length);
+  const prevLengthRef = useRef(guides.length);
 
-  const totalPages  = Math.max(1, Math.ceil(guides.length / PAGE_SIZE));
-  const startIdx    = (currentPage - 1) * PAGE_SIZE;
-  const pageGuides  = guides.slice(startIdx, startIdx + PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(guides.length / PAGE_SIZE));
+  const startIdx = (currentPage - 1) * PAGE_SIZE;
+  const pageGuides = guides.slice(startIdx, startIdx + PAGE_SIZE);
 
   // Auto-advance to last page when a new guide is added
   useEffect(() => {
@@ -39,11 +39,11 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
       {/* ── Table header bar ───────────────────────────────── */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <h2 className="text-sm font-semibold text-slate-300">
+          <h2 className="text-sm font-semibold text-white/90">
             Guías registradas
           </h2>
           {!isEmpty && (
-            <span className="text-xs font-medium text-cyan-400 bg-cyan-400/10 border border-cyan-400/20 px-2.5 py-0.5 rounded-full">
+            <span className="text-xs font-medium text-blue-700 bg-white/80 border border-white/60 px-2.5 py-0.5 rounded-full">
               {guides.length}
             </span>
           )}
@@ -57,9 +57,9 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
               onClick={onCopyAll}
               className="
                 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium cursor-pointer
-                bg-[#0d1320] text-slate-400 border border-[#1e3a5f]/60
-                hover:text-cyan-400 hover:border-cyan-500/40 hover:bg-cyan-500/[0.07]
-                transition-all duration-150
+                bg-white/80 text-slate-600 border border-white/60
+                hover:text-blue-700 hover:border-blue-300 hover:bg-white
+                transition-all duration-150 shadow-sm
               "
             >
               <CopyAllIcon />
@@ -72,9 +72,9 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
               onClick={onClearAll}
               className="
                 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium cursor-pointer
-                bg-[#0d1320] text-slate-500 border border-[#1e3a5f]/60
-                hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/[0.07]
-                transition-all duration-150
+                bg-white/80 text-slate-500 border border-white/60
+                hover:text-red-500 hover:border-red-300 hover:bg-white
+                transition-all duration-150 shadow-sm
               "
             >
               <TrashAllIcon />
@@ -86,8 +86,8 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
 
       {/* ── Table container ────────────────────────────────── */}
       <div
-        className="rounded-2xl overflow-hidden border border-[#1a2640]"
-        style={{ background: 'linear-gradient(180deg, #0d1320 0%, #0b1019 100%)' }}
+        className="rounded-2xl overflow-hidden border border-white/40 shadow-[0_8px_32px_rgba(30,58,138,0.15)]"
+        style={{ background: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(12px)' }}
       >
         {isEmpty ? (
           <EmptyState />
@@ -95,17 +95,18 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
-                <tr style={{ borderBottom: '1px solid rgba(26,38,64,0.8)' }}>
-                  <th className="px-4 py-2 text-center text-xs font-semibold text-slate-600 uppercase tracking-widest w-12">
+                <tr style={{ borderBottom: '1px solid rgba(148,163,184,0.3)' }}
+                  className="bg-slate-50/80">
+                  <th className="px-4 py-2.5 text-center text-xs font-semibold text-slate-400 uppercase tracking-widest w-12">
                     #
                   </th>
-                  <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-widest w-28">
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-widest w-28">
                     Fecha
                   </th>
-                  <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-widest">
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-widest">
                     Nro. de Guía
                   </th>
-                  <th className="px-4 py-2 text-right text-xs font-semibold text-slate-600 uppercase tracking-widest w-44">
+                  <th className="px-4 py-2.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-widest w-44">
                     Acciones
                   </th>
                 </tr>
@@ -131,11 +132,11 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
         <div className="mt-4 flex items-center justify-between gap-4">
 
           {/* Left: info text */}
-          <p className="text-xs text-slate-600 whitespace-nowrap">
+          <p className="text-xs text-white/70 whitespace-nowrap">
             Mostrando{' '}
-            <span className="text-slate-400 font-medium">{startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, guides.length)}</span>
+            <span className="text-white font-medium">{startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, guides.length)}</span>
             {' '}de{' '}
-            <span className="text-slate-400 font-medium">{guides.length}</span>
+            <span className="text-white font-medium">{guides.length}</span>
             {' '}guías · Guardado auto
           </p>
 
@@ -150,11 +151,11 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
                 disabled={currentPage === 1}
                 className="
                   flex items-center justify-center w-8 h-8 rounded-lg
-                  text-slate-400 border border-[#1e3a5f]/60 bg-[#0d1320]
-                  hover:text-cyan-400 hover:border-cyan-500/40 hover:bg-cyan-500/[0.07]
-                  disabled:opacity-25 disabled:cursor-not-allowed disabled:hover:text-slate-400
-                  disabled:hover:border-[#1e3a5f]/60 disabled:hover:bg-[#0d1320]
-                  transition-all duration-150 cursor-pointer
+                  text-slate-600 border border-white/60 bg-white/80
+                  hover:text-blue-700 hover:border-blue-300 hover:bg-white
+                  disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-slate-600
+                  disabled:hover:border-white/60 disabled:hover:bg-white/80
+                  transition-all duration-150 cursor-pointer shadow-sm
                 "
                 aria-label="Página anterior"
               >
@@ -164,7 +165,7 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
               {/* Page pills */}
               {buildPageRange(currentPage, totalPages).map((item, i) =>
                 item === '…' ? (
-                  <span key={`ellipsis-${i}`} className="px-1 text-slate-700 text-xs select-none">…</span>
+                  <span key={`ellipsis-${i}`} className="px-1 text-white/60 text-xs select-none">…</span>
                 ) : (
                   <button
                     key={item}
@@ -172,11 +173,10 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
                     onClick={() => setCurrentPage(item)}
                     className={`
                       w-8 h-8 rounded-lg text-xs font-medium cursor-pointer
-                      border transition-all duration-150
-                      ${
-                        item === currentPage
-                          ? 'bg-cyan-500/15 text-cyan-400 border-cyan-500/40 font-semibold'
-                          : 'bg-[#0d1320] text-slate-500 border-[#1e3a5f]/60 hover:text-slate-300 hover:border-[#1e3a5f]'
+                      border transition-all duration-150 shadow-sm
+                      ${item === currentPage
+                        ? 'bg-blue-700 text-white border-blue-700 font-semibold shadow-md'
+                        : 'bg-white/80 text-slate-600 border-white/60 hover:text-blue-700 hover:border-blue-300 hover:bg-white'
                       }
                     `}
                     aria-current={item === currentPage ? 'page' : undefined}
@@ -193,11 +193,11 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
                 disabled={currentPage === totalPages}
                 className="
                   flex items-center justify-center w-8 h-8 rounded-lg
-                  text-slate-400 border border-[#1e3a5f]/60 bg-[#0d1320]
-                  hover:text-cyan-400 hover:border-cyan-500/40 hover:bg-cyan-500/[0.07]
-                  disabled:opacity-25 disabled:cursor-not-allowed disabled:hover:text-slate-400
-                  disabled:hover:border-[#1e3a5f]/60 disabled:hover:bg-[#0d1320]
-                  transition-all duration-150 cursor-pointer
+                  text-slate-600 border border-white/60 bg-white/80
+                  hover:text-blue-700 hover:border-blue-300 hover:bg-white
+                  disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-slate-600
+                  disabled:hover:border-white/60 disabled:hover:bg-white/80
+                  transition-all duration-150 cursor-pointer shadow-sm
                 "
                 aria-label="Página siguiente"
               >
@@ -216,12 +216,12 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-8 gap-4">
-      <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-[#111827] border border-[#1e3a5f]/50">
+      <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200">
         <InboxIcon />
       </div>
       <div className="text-center">
         <p className="text-sm font-medium text-slate-500">Sin guías registradas</p>
-        <p className="text-xs text-slate-700 mt-1">
+        <p className="text-xs text-slate-400 mt-1">
           Escanea un código de barras o ingresa un número arriba
         </p>
       </div>
@@ -256,7 +256,7 @@ function TrashAllIcon() {
 function InboxIcon() {
   return (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-      stroke="#1e3a5f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
       <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
     </svg>
@@ -294,7 +294,7 @@ function buildPageRange(current, total) {
   }
 
   const pages = new Set([1, total, current]);
-  if (current > 1)     pages.add(current - 1);
+  if (current > 1) pages.add(current - 1);
   if (current < total) pages.add(current + 1);
 
   const sorted = [...pages].sort((a, b) => a - b);

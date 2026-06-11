@@ -5,7 +5,7 @@ import { useState } from 'react';
  * Shows: row number, formatted date+time, guide code (monospace), copy & delete actions.
  */
 export default function GuideRow({ guide, index, onCopy, onRemove }) {
-  const [copied, setCopied]   = useState(false);
+  const [copied, setCopied] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
   const { hour, minute, date } = formatTimestamp(guide.timestamp);
@@ -31,31 +31,31 @@ export default function GuideRow({ guide, index, onCopy, onRemove }) {
   return (
     <tr
       className={`
-        group border-b border-[#1a2640]/60 transition-all duration-200
-        hover:bg-cyan-500/[0.04]
+        group border-b border-slate-200/70 transition-all duration-200
+        hover:bg-blue-50/60
         ${leaving ? 'opacity-0 scale-y-95 origin-top' : 'animate-rowAppear'}
       `}
     >
       {/* # */}
-      <td className="px-4 py-2 text-center">
-        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#1a2640] text-slate-400 text-xs font-medium">
+      <td className="px-4 py-2.5 text-center">
+        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-500 text-xs font-medium border border-slate-200">
           {index + 1}
         </span>
       </td>
 
       {/* Fecha / Hora */}
-      <td className="px-4 py-2 whitespace-nowrap">
+      <td className="px-4 py-2.5 whitespace-nowrap">
         <div className="flex flex-col gap-0">
-          <span className="text-xs text-slate-300 font-medium">{hour}:{minute}</span>
-          <span className="text-[11px] text-slate-600">{date}</span>
+          <span className="text-xs text-slate-700 font-medium">{hour}:{minute}</span>
+          <span className="text-[11px] text-slate-400">{date}</span>
         </div>
       </td>
 
       {/* Guía */}
-      <td className="px-4 py-2">
+      <td className="px-4 py-2.5">
         <span
-          className="font-mono-guide text-sm font-medium tracking-widest text-cyan-300
-            bg-cyan-500/[0.07] border border-cyan-500/20 px-2.5 py-1 rounded-lg
+          className="font-mono-guide text-sm font-medium tracking-widest text-blue-700
+            bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-lg
             select-all"
         >
           {guide.code}
@@ -63,7 +63,7 @@ export default function GuideRow({ guide, index, onCopy, onRemove }) {
       </td>
 
       {/* Acciones */}
-      <td className="px-4 py-2 text-right">
+      <td className="px-4 py-2.5 text-right">
         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
           {/* Copy */}
           <button
@@ -72,10 +72,10 @@ export default function GuideRow({ guide, index, onCopy, onRemove }) {
             title="Copiar guía"
             className={`
               flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium
-              transition-all duration-150 cursor-pointer
+              transition-all duration-150 cursor-pointer border
               ${copied
-                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                : 'bg-[#1a2640] text-slate-400 border border-[#1e3a5f]/60 hover:text-cyan-400 hover:border-cyan-500/40 hover:bg-cyan-500/10'
+                ? 'bg-emerald-50 text-emerald-600 border-emerald-300'
+                : 'bg-white text-slate-500 border-slate-200 hover:text-blue-700 hover:border-blue-300 hover:bg-blue-50'
               }
             `}
           >
@@ -91,15 +91,15 @@ export default function GuideRow({ guide, index, onCopy, onRemove }) {
             title="Doble clic para eliminar"
             className="
               flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium
-              bg-[#1a2640] text-slate-500 border border-[#1e3a5f]/60 cursor-pointer
-              hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/10
+              bg-white text-slate-400 border border-slate-200 cursor-pointer
+              hover:text-red-500 hover:border-red-300 hover:bg-red-50
               active:scale-95
               transition-all duration-150
             "
           >
             <TrashIcon />
             <span>Borrar</span>
-            <span className="text-[10px] text-slate-600 font-normal">×2</span>
+            <span className="text-[10px] text-slate-300 font-normal">×2</span>
           </button>
         </div>
       </td>
@@ -112,9 +112,9 @@ export default function GuideRow({ guide, index, onCopy, onRemove }) {
 function formatTimestamp(iso) {
   const d = new Date(iso);
   return {
-    hour:   String(d.getHours()).padStart(2, '0'),
+    hour: String(d.getHours()).padStart(2, '0'),
     minute: String(d.getMinutes()).padStart(2, '0'),
-    date:   d.toLocaleDateString('es-VE', { day: '2-digit', month: 'short' }),
+    date: d.toLocaleDateString('es-VE', { day: '2-digit', month: 'short' }),
   };
 }
 
