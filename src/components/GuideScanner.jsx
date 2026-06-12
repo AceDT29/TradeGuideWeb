@@ -38,7 +38,7 @@ export default function GuideScanner({ onAdd, onError, disabled = false }) {
       // Ignore complex key combos
       if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-      if (/^\d$/.test(e.key)) {
+      if (/^[A-Za-z0-9]$/.test(e.key)) {
         e.preventDefault();
         setValue(prev => (prev + e.key).slice(0, GUIDE_LENGTH));
       } else if (e.key === 'Enter') {
@@ -55,8 +55,8 @@ export default function GuideScanner({ onAdd, onError, disabled = false }) {
   }, [disabled, onAdd, onError]);
 
   const handleChange = (e) => {
-    // Strip non-digits, cap at 10 chars
-    const clean = e.target.value.replace(/\D/g, '').slice(0, GUIDE_LENGTH);
+    // Strip non-alphanumeric, cap at 10 chars
+    const clean = e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, GUIDE_LENGTH);
     setValue(clean);
   };
 
@@ -79,8 +79,8 @@ export default function GuideScanner({ onAdd, onError, disabled = false }) {
 
     // Validación estricta para guías Zoom:
     // - 9 dígitos que empiezan con 9 (ej: 980400009)
-    // - 10 dígitos que empiezan con 1 (ej: 1680635235, 1314517890)
-    const isValidZoomGuide = /^(9\d{8}|1\d{9})$/.test(trimmed);
+    // - 10 dígitos que empiezan con 1 o 2 (ej: 1680635235, 2000000000)
+    const isValidZoomGuide = /^(9\d{8}|[12]\d{9})$/.test(trimmed);
 
     if (!isValidZoomGuide) {
       const audio = new Audio('/audio/error-voice.mp3');
@@ -126,7 +126,7 @@ export default function GuideScanner({ onAdd, onError, disabled = false }) {
           ref={inputRef}
           type="text"
           disabled={disabled}
-          inputMode="numeric"
+          inputMode="text"
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}

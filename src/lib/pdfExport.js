@@ -62,6 +62,6 @@ export function exportGuidesToPDF(guides) {
   });
 
   // Save the PDF
-  const filename = `Hoja_de_Ruta_${now.toISOString().split('T')[0]}.pdf`;
+  const filename = `Inventario_del_dia_Trade_Express_${now.toISOString().split('T')[0]}.pdf`;
   doc.save(filename);
 }
