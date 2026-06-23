@@ -152,3 +152,320 @@ body {
   outline: none;
   box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.25);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   QR Scanner Styles
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── QR Scan Button (mobile only) ─────────────────────── */
+.qr-scan-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px 20px;
+  border: 2px dashed rgba(34, 211, 238, 0.35);
+  border-radius: 16px;
+  background: rgba(30, 58, 95, 0.4);
+  color: #94e2f8;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.qr-scan-button:hover {
+  background: rgba(30, 58, 95, 0.65);
+  border-color: rgba(34, 211, 238, 0.55);
+  transform: translateY(-1px);
+}
+
+.qr-scan-button:active {
+  transform: translateY(0);
+  background: rgba(30, 58, 95, 0.8);
+}
+
+.qr-scan-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Hide on desktop */
+@media (min-width: 1024px) {
+  .qr-scan-button {
+    display: none;
+  }
+}
+
+/* ─── Modal Overlay ────────────────────────────────────── */
+.qr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: qrFadeIn 0.25s ease-out;
+  padding: 16px;
+}
+
+.qr-modal-content {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 24px;
+  background: linear-gradient(145deg, #0f1729, #162038);
+  border: 1px solid rgba(34, 211, 238, 0.15);
+  box-shadow:
+    0 25px 60px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  overflow: hidden;
+  animation: qrSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: box-shadow 0.3s ease;
+}
+
+/* ─── Flash effects ────────────────────────────────────── */
+.qr-flash-success {
+  box-shadow:
+    0 25px 60px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(52, 211, 153, 0.4),
+    0 0 0 2px rgba(52, 211, 153, 0.5);
+}
+
+.qr-flash-error {
+  box-shadow:
+    0 25px 60px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(239, 68, 68, 0.4),
+    0 0 0 2px rgba(239, 68, 68, 0.5);
+}
+
+/* ─── Header ───────────────────────────────────────────── */
+.qr-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+}
+
+.qr-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #e2e8f0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.qr-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.qr-close-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+}
+
+/* ─── Camera Viewport ──────────────────────────────────── */
+.qr-viewport-wrapper {
+  position: relative;
+  margin: 0 16px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #000;
+  aspect-ratio: 1 / 1;
+}
+
+.qr-viewport {
+  width: 100%;
+  height: 100%;
+}
+
+/* Override html5-qrcode internal styles */
+.qr-viewport video {
+  object-fit: cover !important;
+  border-radius: 16px;
+}
+
+.qr-viewport img {
+  display: none;
+}
+
+#qr-shaded-region {
+  display: none !important;
+}
+
+/* ─── Scan Frame Overlay ───────────────────────────────── */
+.qr-scan-frame {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.qr-corner {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-color: rgba(34, 211, 238, 0.8);
+  border-style: solid;
+  border-width: 0;
+}
+
+.qr-corner-tl {
+  top: 20%;
+  left: 20%;
+  border-top-width: 3px;
+  border-left-width: 3px;
+  border-top-left-radius: 8px;
+}
+
+.qr-corner-tr {
+  top: 20%;
+  right: 20%;
+  border-top-width: 3px;
+  border-right-width: 3px;
+  border-top-right-radius: 8px;
+}
+
+.qr-corner-bl {
+  bottom: 20%;
+  left: 20%;
+  border-bottom-width: 3px;
+  border-left-width: 3px;
+  border-bottom-left-radius: 8px;
+}
+
+.qr-corner-br {
+  bottom: 20%;
+  right: 20%;
+  border-bottom-width: 3px;
+  border-right-width: 3px;
+  border-bottom-right-radius: 8px;
+}
+
+/* ─── Scan Line Animation ──────────────────────────────── */
+.qr-scan-line {
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.8), transparent);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.5);
+  animation: qrScanSweep 2.5s ease-in-out infinite;
+}
+
+/* ─── Status Overlays ──────────────────────────────────── */
+.qr-status-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(15, 23, 42, 0.9);
+  color: #94a3b8;
+  font-size: 14px;
+  text-align: center;
+  padding: 24px;
+}
+
+.qr-error-state {
+  color: #f87171;
+}
+
+.qr-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(34, 211, 238, 0.15);
+  border-top-color: rgba(34, 211, 238, 0.8);
+  border-radius: 50%;
+  animation: qrSpin 0.8s linear infinite;
+}
+
+.qr-retry-btn {
+  margin-top: 8px;
+  padding: 10px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.qr-retry-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ─── Footer ───────────────────────────────────────────── */
+.qr-modal-footer {
+  padding: 16px 20px 20px;
+  text-align: center;
+}
+
+.qr-instruction {
+  color: #64748b;
+  font-size: 13px;
+  margin: 0;
+}
+
+.qr-last-scanned {
+  color: #34d399;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  animation: fadeInUp 0.3s ease-out;
+}
+
+.qr-last-scanned .font-mono-guide {
+  color: #a7f3d0;
+}
+
+/* ─── QR Animations ────────────────────────────────────── */
+@keyframes qrFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes qrSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes qrScanSweep {
+  0%, 100% { top: 22%; }
+  50%      { top: 76%; }
+}
+
+@keyframes qrSpin {
+  to { transform: rotate(360deg); }
+}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import QRScannerModal from './QRScannerModal';
 
 const GUIDE_LENGTH = 10;
 
@@ -11,6 +12,7 @@ export default function GuideScanner({ onAdd, onError, disabled = false }) {
   const valueRef = useRef(value);
   const [shake, setShake] = useState(false);
   const [focused, setFocus] = useState(true);
+  const [showQR, setShowQR] = useState(false);
   const inputRef = useRef(null);
 
   // Keep valueRef synced for the global keydown listener
@@ -183,6 +185,37 @@ export default function GuideScanner({ onAdd, onError, disabled = false }) {
         </kbd>{' '}
         o espera el scan del lector para añadir la guía
       </p>
+
+      {/* QR Scanner button — visible on mobile */}
+      <button
+        type="button"
+        onClick={() => setShowQR(true)}
+        disabled={disabled}
+        className="qr-scan-button"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="2" width="8" height="8" rx="1" />
+          <rect x="14" y="2" width="8" height="8" rx="1" />
+          <rect x="2" y="14" width="8" height="8" rx="1" />
+          <path d="M14 14h2v2h-2z" />
+          <path d="M20 14h2v2h-2z" />
+          <path d="M14 20h2v2h-2z" />
+          <path d="M20 20h2v2h-2z" />
+        </svg>
+        Escanear QR con cámara
+      </button>
+
+      {/* QR Scanner Modal */}
+      {showQR && (
+        <QRScannerModal
+          onScan={(code) => {
+            onAdd(code);
+          }}
+          onError={onError}
+          onClose={() => setShowQR(false)}
+        />
+      )}
     </section>
   );
 }
