@@ -2,6 +2,20 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 
 const SCAN_COOLDOWN_MS = 1500;
+const GUIDE_MAX_LENGTH = 10;
+
+/**
+ * Parse raw QR text from Zoom packages.
+ * Format: "1682559405;01;01;0110;0056" → extract first segment "1682559405"
+ * Also handles plain guide numbers.
+ */
+function parseGuideFromQR(raw) {
+  const text = raw.trim();
+  // Split by semicolon and take the first part (the guide number)
+  const firstSegment = text.split(';')[0].trim();
+  // Only keep alphanumeric, cap at GUIDE_MAX_LENGTH
+  return firstSegment.replace(/[^A-Za-z0-9]/g, '').slice(0, GUIDE_MAX_LENGTH);
+}
 
 /**
  * QRScannerModal — fullscreen modal that uses the smartphone's rear camera
@@ -28,6 +42,26 @@ export default function QRScannerModal({ onScan, onError, onClose }) {
       if (mountedRef.current) setFlash('');
     }, 600);
   }, []);
+
+  // Handle phone back button / back gesture to close scanner
+  useEffect(() => {
+    // Push a dummy state so pressing back pops it instead of navigating away
+    history.pushState({ qrScanner: true }, '');
+
+    const handlePopState = () => {
+      onClose();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      // Clean up the dummy state if component unmounts without back press
+      if (history.state?.qrScanner) {
+        history.back();
+      }
+    };
+  }, [onClose]);
 
   // Initialize camera and scanner
   useEffect(() => {
@@ -75,10 +109,11 @@ export default function QRScannerModal({ onScan, onError, onClose }) {
             if (cooldownRef.current) return;
             cooldownRef.current = true;
 
-            const trimmed = decodedText.trim();
+            // Parse guide number from QR (format: "1682559405;01;01;0110;0056")
+            const guideCode = parseGuideFromQR(decodedText);
 
             // Same Zoom guide validation as GuideScanner
-            const isValidZoomGuide = /^(9\d{8}|[12]\d{9})$/.test(trimmed);
+            const isValidZoomGuide = /^(9\d{8}|[12]\d{9})$/.test(guideCode);
 
             if (isValidZoomGuide) {
               // Haptic feedback
@@ -88,23 +123,23 @@ export default function QRScannerModal({ onScan, onError, onClose }) {
               try {
                 const audio = new Audio('/audio/success-beep.mp3');
                 audio.volume = 0.5;
-                audio.play().catch(() => {});
-              } catch {}
+                audio.play().catch(() => { });
+              } catch { }
 
-              setLastScanned(trimmed);
+              setLastScanned(guideCode);
               triggerFlash('success');
-              onScan(trimmed);
+              onScan(guideCode);
+
+              // Auto-close after a successful scan (allows flash/sound to play first)
+              setTimeout(() => {
+                if (mountedRef.current) onClose();
+              }, 700);
             } else {
-              // Haptic error
+              // Haptic error — silently ignore non-guide QRs (e.g. security codes)
               if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
 
-              try {
-                const audio = new Audio('/audio/error-voice.mp3');
-                audio.play().catch(() => {});
-              } catch {}
-
               triggerFlash('error');
-              onError(`QR no contiene guía válida de Zoom: "${trimmed}"`);
+              // Don't spam toast for every wrong QR, just flash red
             }
 
             // Reset cooldown
@@ -112,7 +147,7 @@ export default function QRScannerModal({ onScan, onError, onClose }) {
               cooldownRef.current = false;
             }, SCAN_COOLDOWN_MS);
           },
-          () => {} // ignore scan failures (no QR detected in frame)
+          () => { } // ignore scan failures (no QR detected in frame)
         );
 
         // Only mark as started if .start() resolved successfully
@@ -146,10 +181,10 @@ export default function QRScannerModal({ onScan, onError, onClose }) {
           html5Qrcode
             .stop()
             .then(() => html5Qrcode.clear())
-            .catch(() => {});
+            .catch(() => { });
         } else if (html5Qrcode) {
           // Scanner was created but never started — just clear the DOM
-          try { html5Qrcode.clear(); } catch {}
+          try { html5Qrcode.clear(); } catch { }
         }
       } catch {
         // Safety net — never let cleanup crash the app
@@ -158,7 +193,7 @@ export default function QRScannerModal({ onScan, onError, onClose }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="qr-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="qr-modal-overlay">
       <div className={`qr-modal-content ${flash === 'success' ? 'qr-flash-success' : flash === 'error' ? 'qr-flash-error' : ''}`}>
 
         {/* Header */}
@@ -207,7 +242,7 @@ export default function QRScannerModal({ onScan, onError, onClose }) {
           )}
         </div>
 
-        {/* Footer */}
+        {/* Footer info */}
         <div className="qr-modal-footer">
           {lastScanned ? (
             <p className="qr-last-scanned">
@@ -219,6 +254,12 @@ export default function QRScannerModal({ onScan, onError, onClose }) {
             </p>
           )}
         </div>
+
+        {/* Prominent close button */}
+        <button onClick={onClose} className="qr-close-button-main">
+          <CloseIcon />
+          <span>Cerrar escáner</span>
+        </button>
       </div>
     </div>
   );
