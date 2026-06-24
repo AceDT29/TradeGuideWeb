@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Html5Qrcode } from 'html5-qrcode';
 
 const SCAN_COOLDOWN_MS = 1500;
@@ -42,26 +43,6 @@ export default function QRScannerModal({ onScan, onError, onClose }) {
       if (mountedRef.current) setFlash('');
     }, 600);
   }, []);
-
-  // Handle phone back button / back gesture to close scanner
-  useEffect(() => {
-    // Push a dummy state so pressing back pops it instead of navigating away
-    history.pushState({ qrScanner: true }, '');
-
-    const handlePopState = () => {
-      onClose();
-    };
-
-    window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      // Clean up the dummy state if component unmounts without back press
-      if (history.state?.qrScanner) {
-        history.back();
-      }
-    };
-  }, [onClose]);
 
   // Initialize camera and scanner
   useEffect(() => {
@@ -192,9 +173,9 @@ export default function QRScannerModal({ onScan, onError, onClose }) {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return (
+  return createPortal(
     <div className="qr-modal-overlay">
-      <div className={`qr-modal-content ${flash === 'success' ? 'qr-flash-success' : flash === 'error' ? 'qr-flash-error' : ''}`}>
+      <div className={`qr-modal-content  ${flash === 'success' ? 'qr-flash-success' : flash === 'error' ? 'qr-flash-error' : ''}`}>
 
         {/* Header */}
         <div className="qr-modal-header">
@@ -261,7 +242,8 @@ export default function QRScannerModal({ onScan, onError, onClose }) {
           <span>Cerrar escáner</span>
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

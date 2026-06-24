@@ -213,7 +213,7 @@ body {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   animation: qrFadeIn 0.25s ease-out;
-  padding: 16px;
+  padding: 8px;
 }
 
 .qr-modal-content {
@@ -475,8 +475,13 @@ body {
 
 /* ─── QR Animations ────────────────────────────────────── */
 @keyframes qrFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes qrSlideUp {
@@ -484,6 +489,7 @@ body {
     opacity: 0;
     transform: translateY(40px) scale(0.96);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -491,10 +497,19 @@ body {
 }
 
 @keyframes qrScanSweep {
-  0%, 100% { top: 22%; }
-  50%      { top: 76%; }
+
+  0%,
+  100% {
+    top: 22%;
+  }
+
+  50% {
+    top: 76%;
+  }
 }
 
 @keyframes qrSpin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }

@@ -35,11 +35,11 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
   const isEmpty = guides.length === 0;
 
   return (
-    <section className="animate-fadeInUp" style={{ animationDelay: '0.08s' }}>
+    <section className="animate-fadeInUp mt-12 md:mt-0" style={{ animationDelay: '0.08s' }}>
 
       {/* ── Table header bar ───────────────────────────────── */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between mb-4 z-0">
+        <div className="hidden md:flex items-center gap-1 md:gap-3">
           <h2 className="text-sm font-semibold text-white/90">
             Guías registradas
           </h2>
@@ -72,7 +72,7 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
               id="copy-all-btn"
               onClick={onCopyAll}
               className="
-                flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium cursor-pointer
+                flex items-center gap-1.5 p-2 md:p-4 rounded-xl text-xs font-medium cursor-pointer
                 bg-white/80 text-slate-600 border border-white/60
                 hover:text-blue-700 hover:border-blue-300 hover:bg-white
                 transition-all duration-150 shadow-sm
