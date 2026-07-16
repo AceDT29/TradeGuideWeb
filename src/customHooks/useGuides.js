@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSocket } from '../lib/useSocket';
+import { socket } from '../lib/useSocket';
 
 const STORAGE_KEY = 'tradeweb_guides';
 const CLEANUP_KEY = 'tradeweb_last_cleanup';
-const CLEANUP_MS  = 24 * 60 * 60 * 1000; // 24 horas
+const CLEANUP_MS = 24 * 60 * 60 * 1000; // 24 horas
 
 /**
  * Corre sincrónicamente en el primer render (lazy initializer de useState).
@@ -10,9 +12,9 @@ const CLEANUP_MS  = 24 * 60 * 60 * 1000; // 24 horas
  */
 function loadInitialGuides() {
   try {
-    const now       = Date.now();
+    const now = Date.now();
     const lastClean = localStorage.getItem(CLEANUP_KEY);
-    const elapsed   = lastClean ? now - parseInt(lastClean, 10) : Infinity;
+    const elapsed = lastClean ? now - parseInt(lastClean, 10) : Infinity;
 
     // Primera visita o nunca se fijó el timestamp → inicializar
     if (!lastClean) {
@@ -44,6 +46,7 @@ function loadInitialGuides() {
 export function useGuides() {
   // Estado inicializado sincrónicamente desde localStorage
   const [guides, setGuides] = useState(loadInitialGuides);
+  const { onLine } = useSocket()
 
   // ── Persistir en cada cambio ──────────────────────────────
   useEffect(() => {
@@ -54,14 +57,41 @@ export function useGuides() {
     }
   }, [guides]);
 
+  // ── Escuchar nuevas guías desde el servidor ───────────────
+  useEffect(() => {
+    const handleNewGuide = (newGuide) => {
+      setGuides((prev) => {
+        // Evitar duplicados (ej: si fuimos nosotros mismos quienes enviamos la guía)
+        const exists = prev.some((g) => g.id === newGuide.id);
+        if (exists) return prev;
+
+        return [...prev, newGuide];
+      });
+    };
+
+    socket.on("chatGuide", handleNewGuide);
+
+    // Limpiar el evento cuando se desmonte
+    return () => {
+      socket.off("chatGuide", handleNewGuide);
+    };
+  }, []);
+
   // ── Acciones ──────────────────────────────────────────────
   const addGuide = useCallback((code) => {
     const entry = {
-      id:        crypto.randomUUID(),
+      id: crypto.randomUUID(),
       code,
       timestamp: new Date().toISOString(),
     };
     setGuides((prev) => [...prev, entry]);
+    socket.emit("createGuide", entry, (response) => {
+      socket.auth.serverOffset = response.offset;
+      if (response.error) {
+        console.log(response.error);
+        return;
+      }
+    });
     return entry;
   }, []);
 

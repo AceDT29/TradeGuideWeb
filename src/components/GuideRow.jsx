@@ -6,6 +6,7 @@ import { useState } from 'react';
  */
 export default function GuideRow({ guide, index, onCopy, onRemove }) {
   const [copied, setCopied] = useState(false);
+  const [rowCopied, setRowCopied] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
   const { hour, minute, date } = formatTimestamp(guide.timestamp);
@@ -14,6 +15,7 @@ export default function GuideRow({ guide, index, onCopy, onRemove }) {
     e.stopPropagation();
     onCopy(guide.code);
     setCopied(true);
+    setRowCopied(true);
     setTimeout(() => setCopied(false), 1800);
   };
 
@@ -32,7 +34,7 @@ export default function GuideRow({ guide, index, onCopy, onRemove }) {
     <tr
       className={`
         group border-b border-slate-200/70 transition-all duration-200
-        hover:bg-blue-50/60
+        ${rowCopied ? 'bg-emerald-200/80 hover:bg-emerald-100/60' : 'hover:bg-blue-50/60'}
         ${leaving ? 'opacity-0 scale-y-95 origin-top' : 'animate-rowAppear'}
       `}
     >

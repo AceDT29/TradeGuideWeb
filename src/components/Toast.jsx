@@ -36,7 +36,7 @@ function ToastItem({ toast, onRemove }) {
       `}
     >
       {/* Icon */}
-      <div className="flex-shrink-0">
+      <div className="shrink-0">
         {isSuccess ? <SuccessIcon /> : <ErrorIcon />}
       </div>
 
@@ -46,7 +46,7 @@ function ToastItem({ toast, onRemove }) {
       {/* Close */}
       <button
         onClick={() => onRemove(toast.id)}
-        className="flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity cursor-pointer"
+        className="shrink-0 opacity-50 hover:opacity-100 transition-opacity cursor-pointer"
         aria-label="Cerrar notificación"
       >
         <CloseIcon />

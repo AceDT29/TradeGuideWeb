@@ -1,7 +1,10 @@
+import { useSocket } from "../lib/useSocket";
+
 /**
  * Navbar — logo + app title
  */
 export default function Navbar() {
+  const { onLine } = useSocket();
   return (
     <nav
       style={{ borderBottom: '1px solid rgba(30,58,95,0.8)' }}
@@ -27,8 +30,8 @@ export default function Navbar() {
 
         {/* Spacer */}
         <div className="ml-auto flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-xs text-slate-500">Listo para escanear</span>
+          <div className={`w-2 h-2 rounded-full ${onLine ? 'bg-emerald-400' : 'bg-red-400'} animate-pulse`} />
+          <span className="text-xs text-slate-500">{onLine ? 'Modo online' : 'Modo Local'}</span>
         </div>
       </div>
     </nav>
