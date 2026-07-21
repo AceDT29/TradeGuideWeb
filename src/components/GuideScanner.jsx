@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useGuides } from "../customHooks/useGuides"
 import QRScannerModal from './QRScannerModal';
 
 const GUIDE_LENGTH = 10;
@@ -14,6 +15,7 @@ export default function GuideScanner({ onAdd, onError, disabled = false }) {
   const [focused, setFocus] = useState(true);
   const [showQR, setShowQR] = useState(false);
   const inputRef = useRef(null);
+  const { guides } = useGuides();
 
   // Keep valueRef synced for the global keydown listener
   useEffect(() => {
@@ -111,6 +113,16 @@ export default function GuideScanner({ onAdd, onError, disabled = false }) {
       audio.play().catch(e => console.log('Audio error:', e));
 
       onError(`Código ignorado (no es una guía válida de Zoom): ${trimmed}`);
+      triggerShake();
+      setValue('');
+      return;
+    }
+
+    if (guides.some((g) => g.code === trimmed)) {
+      const audio = new Audio('/audio/duplicate-error-voice.mp3');
+      audio.play().catch(e => console.log('Audio error:', e));
+
+      onError(`Código ignorado (ya existe en la lista): ${trimmed}`);
       triggerShake();
       setValue('');
       return;
