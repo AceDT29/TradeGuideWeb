@@ -1,7 +1,7 @@
 import { io } from "socket.io-client";
 import { useState, useEffect } from "react"
 
-const socketUrl = import.meta.env.VITE_API_URL
+const socketUrl = import.meta.env.VITE_SERVER_URL
 
 export const socket = io(socketUrl, {
     reconnection: true,

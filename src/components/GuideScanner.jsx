@@ -20,22 +20,44 @@ export default function GuideScanner({ onAdd, onError, disabled = false }) {
     valueRef.current = value;
   }, [value]);
 
-  // Keep focus on the input whenever the user clicks anywhere
+  // Keep focus on the input whenever the user clicks anywhere,
+  // EXCEPT when the click lands on another focusable input/textarea
+  // (e.g. the search/indexer box in GuideTable).
   useEffect(() => {
     if (disabled) return;
-    const refocus = () => setTimeout(() => inputRef.current?.focus(), 50);
+    const refocus = (e) => {
+      const target = e.target;
+      const isOtherInput =
+        target !== inputRef.current &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
+      if (isOtherInput) return; // let the search box keep focus
+      setTimeout(() => inputRef.current?.focus(), 50);
+    };
     document.addEventListener('click', refocus);
     inputRef.current?.focus();
     return () => document.removeEventListener('click', refocus);
   }, [disabled]);
 
-  // Global keydown listener to capture barcode scanner input even when focus is lost
+  // Global keydown listener to capture barcode scanner input even when focus is lost.
+  // PAUSES automatically when another input/textarea holds focus (e.g. the search box).
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
       if (disabled) return;
 
-      // If we are already focused on the input, let its own handlers deal with the event
+      // If we are already focused on the scanner input, let its own handlers deal with it
       if (document.activeElement === inputRef.current) return;
+
+      // ── Pause for any other focused input / textarea ──────────────────────
+      // This allows the search/indexer in GuideTable to receive keystrokes
+      // without interference. Priority is restored as soon as the other input
+      // loses focus (blur) or the user presses Escape (handled in GuideTable).
+      const active = document.activeElement;
+      if (
+        active &&
+        active !== document.body &&
+        (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')
+      ) return;
+      // ─────────────────────────────────────────────────────────────────────
 
       // Ignore complex key combos
       if (e.ctrlKey || e.metaKey || e.altKey) return;

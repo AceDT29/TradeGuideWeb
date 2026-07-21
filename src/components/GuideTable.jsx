@@ -5,16 +5,41 @@ import { exportGuidesToPDF } from '../lib/pdfExport';
 const PAGE_SIZE = 10;
 
 /**
- * GuideTable — paginated data table (10 guides/page) with header actions.
+ * GuideTable — paginated data table (10 guides/page) with header search/indexer & actions.
  * Auto-advances to the last page whenever a new guide is added.
  */
 export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onClearAll }) {
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
   const prevLengthRef = useRef(guides.length);
+  const searchRef = useRef(null);
 
-  const totalPages = Math.max(1, Math.ceil(guides.length / PAGE_SIZE));
+  // Returns keyboard priority to the GuideScanner after clearing the search.
+  // Simply focuses the main scanner input by its stable DOM id.
+  const returnFocusToScanner = () => {
+    document.getElementById('guide-input')?.focus();
+  };
+
+  const clearSearch = () => {
+    setSearchTerm('');
+    returnFocusToScanner();
+  };
+
+  const cleanSearch = searchTerm.trim().toLowerCase();
+
+  // Filter guides by search term (matches guide code)
+  const filteredGuides = cleanSearch
+    ? guides.filter((g) => g.code.toLowerCase().includes(cleanSearch))
+    : guides;
+
+  const totalPages = Math.max(1, Math.ceil(filteredGuides.length / PAGE_SIZE));
   const startIdx = (currentPage - 1) * PAGE_SIZE;
-  const pageGuides = guides.slice(startIdx, startIdx + PAGE_SIZE);
+  const pageGuides = filteredGuides.slice(startIdx, startIdx + PAGE_SIZE);
+
+  // Reset to first page when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   // Auto-advance to last page when a new guide is added
   useEffect(() => {
@@ -33,53 +58,98 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
   }, [currentPage, totalPages]);
 
   const isEmpty = guides.length === 0;
+  const isSearchEmpty = !isEmpty && filteredGuides.length === 0;
 
   return (
     <section className="animate-fadeInUp mt-12 md:mt-0" style={{ animationDelay: '0.08s' }}>
 
       {/* ── Table header bar ───────────────────────────────── */}
-      <div className="flex items-center justify-between mb-4 z-0">
-        <div className="hidden md:flex items-center gap-1 md:gap-3">
-          <h2 className="text-sm font-semibold text-white/90">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4 z-0">
+
+        {/* Title & Count Badge */}
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-white/90 whitespace-nowrap">
             Guías registradas
           </h2>
           {!isEmpty && (
-            <span className="text-xs font-medium text-blue-700 bg-white/80 border border-white/60 px-2.5 py-0.5 rounded-full">
-              {guides.length}
+            <span className="text-xs font-medium text-blue-700 bg-white/80 border border-white/60 px-2.5 py-0.5 rounded-full shadow-xs">
+              {cleanSearch ? `${filteredGuides.length} de ${guides.length}` : guides.length}
             </span>
           )}
         </div>
 
+        {/* Search / Indexer Input */}
         {!isEmpty && (
-          <div className="flex items-center gap-2">
+          <div className="relative flex-1 max-w-xs">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <SearchIcon />
+            </div>
+            <input
+              id="guide-search-input"
+              ref={searchRef}
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  clearSearch();
+                }
+              }}
+              placeholder="Buscar o indexar guía..."
+              className="
+                w-full pl-9 pr-8 py-1.5 text-xs rounded-xl
+                bg-white/80 border border-white/60 text-slate-700 placeholder-slate-400
+                focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400
+                transition-all duration-150 shadow-xs
+              "
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
+                title="Limpiar búsqueda (Esc)"
+              >
+                <ClearIcon />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Header action buttons */}
+        {!isEmpty && (
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             {/* Export PDF */}
             <button
               id="export-pdf-btn"
-              onClick={() => exportGuidesToPDF(guides)}
+              onClick={() => exportGuidesToPDF(filteredGuides)}
               className="
-                flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium cursor-pointer
+                flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs font-medium cursor-pointer
                 bg-white/80 text-slate-600 border border-white/60
                 hover:text-red-600 hover:border-red-300 hover:bg-white
                 transition-all duration-150 shadow-sm
               "
+              title={cleanSearch ? "Exportar guías filtradas a PDF" : "Exportar todas las guías a PDF"}
             >
               <PdfIcon />
-              Exportar PDF
+              <span className="hidden sm:inline">Exportar</span> PDF
             </button>
 
             {/* Copy All */}
             <button
               id="copy-all-btn"
-              onClick={onCopyAll}
+              onClick={() => onCopyAll(filteredGuides)}
               className="
-                flex items-center gap-1.5 p-2 md:p-4 rounded-xl text-xs font-medium cursor-pointer
+                flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs font-medium cursor-pointer
                 bg-white/80 text-slate-600 border border-white/60
                 hover:text-blue-700 hover:border-blue-300 hover:bg-white
                 transition-all duration-150 shadow-sm
               "
+              title={cleanSearch ? "Copiar guías filtradas al portapapeles" : "Copiar todas las guías al portapapeles"}
             >
               <CopyAllIcon />
-              Copiar todo
+              <span className="hidden sm:inline">Copiar</span> {cleanSearch ? 'filtradas' : 'todo'}
             </button>
 
             {/* Clear All */}
@@ -87,14 +157,14 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
               id="clear-all-btn"
               onClick={onClearAll}
               className="
-                flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium cursor-pointer
+                flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs font-medium cursor-pointer
                 bg-white/80 text-slate-500 border border-white/60
                 hover:text-red-500 hover:border-red-300 hover:bg-white
                 transition-all duration-150 shadow-sm
               "
             >
               <TrashAllIcon />
-              Limpiar lista
+              <span className="hidden sm:inline">Limpiar</span> lista
             </button>
           </div>
         )}
@@ -107,6 +177,8 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
       >
         {isEmpty ? (
           <EmptyState />
+        ) : isSearchEmpty ? (
+          <SearchEmptyState searchTerm={searchTerm} onClear={clearSearch} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
@@ -128,11 +200,11 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
                 </tr>
               </thead>
               <tbody>
-                {pageGuides.map((guide, localIdx) => (
+                {pageGuides.map((guide) => (
                   <GuideRow
                     key={guide.id}
                     guide={guide}
-                    index={startIdx + localIdx}  // global row number
+                    index={guides.findIndex((g) => g.id === guide.id)}  // Global row position
                     onCopy={onCopyOne}
                     onRemove={onRemove}
                   />
@@ -144,16 +216,18 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
       </div>
 
       {/* ── Pagination + footer ──────────────────────────────── */}
-      {!isEmpty && (
-        <div className="mt-4 flex items-center justify-between gap-4">
+      {!isEmpty && !isSearchEmpty && (
+        <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
 
           {/* Left: info text */}
           <p className="text-xs text-white/70 whitespace-nowrap">
             Mostrando{' '}
-            <span className="text-white font-medium">{startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, guides.length)}</span>
+            <span className="text-white font-medium">{startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, filteredGuides.length)}</span>
             {' '}de{' '}
-            <span className="text-white font-medium">{guides.length}</span>
-            {' '}guías · Guardado auto
+            <span className="text-white font-medium">{filteredGuides.length}</span>
+            {cleanSearch ? ' guías filtradas' : ' guías'}
+            {cleanSearch && <span className="text-white/60"> (de {guides.length} totales)</span>}
+            {' '}· Guardado auto
           </p>
 
           {/* Right: page controls */}
@@ -227,7 +301,7 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
   );
 }
 
-// ── Empty state ───────────────────────────────────────────────
+// ── Empty state (No guides registered) ─────────────────────────
 
 function EmptyState() {
   return (
@@ -245,7 +319,52 @@ function EmptyState() {
   );
 }
 
+// ── Search Empty state (No search results found) ───────────────
+
+function SearchEmptyState({ searchTerm, onClear }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-14 px-6 gap-3 text-center">
+      <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600">
+        <SearchIcon />
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-slate-700">No se encontraron guías</p>
+        <p className="text-xs text-slate-500 mt-1 max-w-sm">
+          No hay ninguna guía registrada que coincida con <span className="font-mono bg-slate-100 text-blue-700 font-semibold px-1.5 py-0.5 rounded border border-slate-200">"{searchTerm}"</span>
+        </p>
+      </div>
+      <button
+        onClick={onClear}
+        className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 rounded-xl transition-all duration-150 cursor-pointer shadow-xs"
+      >
+        <ClearIcon />
+        Restablecer lista de guías
+      </button>
+    </div>
+  );
+}
+
 // ── Icons ─────────────────────────────────────────────────────
+
+function SearchIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
+function ClearIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
 
 function CopyAllIcon() {
   return (

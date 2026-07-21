@@ -37,15 +37,16 @@ export default function App() {
     });
   };
 
-  const handleCopyAll = () => {
-    if (guides.length === 0) {
+  const handleCopyAll = (targetGuides) => {
+    const listToCopy = Array.isArray(targetGuides) ? targetGuides : guides;
+    if (listToCopy.length === 0) {
       addToast('No hay guías para copiar', 'error');
       return;
     }
-    const text = guides.map((g) => g.code).join('\n');
+    const text = listToCopy.map((g) => g.code).join('\n');
     navigator.clipboard.writeText(text).then(() => {
       addToast(
-        `${guides.length} ${guides.length === 1 ? 'guía copiada' : 'guías copiadas'}`,
+        `${listToCopy.length} ${listToCopy.length === 1 ? 'guía copiada' : 'guías copiadas'}`,
         'success'
       );
     }).catch(() => {
