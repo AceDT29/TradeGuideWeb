@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSocket } from '../lib/useSocket';
-import { socket } from '../lib/useSocket';
+import { useSocket } from './useSocket';
 
 const STORAGE_KEY = 'tradeweb_guides';
 const CLEANUP_KEY = 'tradeweb_last_cleanup';
@@ -46,7 +45,7 @@ function loadInitialGuides() {
 export function useGuides() {
   // Estado inicializado sincrónicamente desde localStorage
   const [guides, setGuides] = useState(loadInitialGuides);
-  const { onLine } = useSocket()
+  const { socket } = useSocket();
 
   // ── Persistir en cada cambio ──────────────────────────────
   useEffect(() => {

@@ -4,10 +4,6 @@ import { exportGuidesToPDF } from '../lib/pdfExport';
 
 const PAGE_SIZE = 10;
 
-/**
- * GuideTable — paginated data table (10 guides/page) with header search/indexer & actions.
- * Auto-advances to the last page whenever a new guide is added.
- */
 export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onClearAll }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
@@ -15,7 +11,6 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
   const searchRef = useRef(null);
 
   // Returns keyboard priority to the GuideScanner after clearing the search.
-  // Simply focuses the main scanner input by its stable DOM id.
   const returnFocusToScanner = () => {
     document.getElementById('guide-input')?.focus();
   };

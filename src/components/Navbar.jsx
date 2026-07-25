@@ -1,4 +1,4 @@
-import { useSocket } from "../lib/useSocket";
+import { useSocket } from "../customHooks/useSocket";
 
 /**
  * Navbar — logo + app title

@@ -1,7 +1,7 @@
 import { io } from "socket.io-client";
 import { useState, useEffect } from "react"
 
-const socketUrl = import.meta.env.VITE_SERVER_URL
+const socketUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
 
 export const socket = io(socketUrl, {
     reconnection: true,
