@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSocket } from './useSocket';
+import { useConnect } from './useConnect';
 
 const STORAGE_KEY = 'tradeweb_guides';
 const CLEANUP_KEY = 'tradeweb_last_cleanup';
@@ -45,7 +45,7 @@ function loadInitialGuides() {
 export function useGuides() {
   // Estado inicializado sincrónicamente desde localStorage
   const [guides, setGuides] = useState(loadInitialGuides);
-  const { socket } = useSocket();
+  const { onAuth, socket } = useConnect();
 
   // ── Persistir en cada cambio ──────────────────────────────
   useEffect(() => {
@@ -58,6 +58,8 @@ export function useGuides() {
 
   // ── Escuchar nuevas guías desde el servidor ───────────────
   useEffect(() => {
+    if (!onAuth || !socket) return;
+
     const handleNewGuide = (newGuide) => {
       setGuides((prev) => {
         // Evitar duplicados (ej: si fuimos nosotros mismos quienes enviamos la guía)
@@ -70,11 +72,11 @@ export function useGuides() {
 
     socket.on("chatGuide", handleNewGuide);
 
-    // Limpiar el evento cuando se desmonte
+    // Limpiar el evento cuando se desmonte o cambie la conexión/socket
     return () => {
       socket.off("chatGuide", handleNewGuide);
     };
-  }, []);
+  }, [onAuth, socket]);
 
   // ── Acciones ──────────────────────────────────────────────
   const addGuide = useCallback((code) => {
@@ -84,15 +86,22 @@ export function useGuides() {
       timestamp: new Date().toISOString(),
     };
     setGuides((prev) => [...prev, entry]);
-    socket.emit("createGuide", entry, (response) => {
-      socket.auth.serverOffset = response.offset;
-      if (response.error) {
-        console.log(response.error);
-        return;
-      }
-    });
+
+    if (onAuth && socket) {
+      console.log("el codigo paso por la entrada de guia asincrona");
+      socket.emit("createGuide", entry, (response) => {
+        if (response?.offset && socket.auth) {
+          socket.auth.serverOffset = response.offset;
+        }
+        if (response?.error) {
+          console.log("Error del servidor al crear guía:", response.error);
+          return;
+        }
+      });
+    }
+
     return entry;
-  }, []);
+  }, [onAuth, socket]);
 
   const removeGuide = useCallback((id) => {
     setGuides((prev) => prev.filter((g) => g.id !== id));

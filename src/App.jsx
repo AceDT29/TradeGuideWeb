@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Navbar from './components/Navbar';
 import GuideScanner from './components/GuideScanner';
 import GuideTable from './components/GuideTable';
@@ -6,16 +6,11 @@ import ClearAllModal from './components/ClearAllModal';
 import Toast from './components/Toast';
 import { useGuides } from './customHooks/useGuides';
 import { useToast } from './customHooks/useToast';
-import { responseTest } from './lib/axiosInstance';
 
 export default function App() {
   const { guides, addGuide, removeGuide, clearAll } = useGuides();
   const { toasts, addToast, removeToast } = useToast();
   const [showClearModal, setShowClearModal] = useState(false);
-
-  useEffect(() => {
-    responseTest();
-  }, []);
 
   // ── Event handlers ────────────────────────────────────────
 

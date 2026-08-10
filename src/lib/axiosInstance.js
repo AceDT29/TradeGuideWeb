@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = import.meta.env.VITE_SERVER_URL;
+const BASE_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
 
 export const axiosInstance = axios.create({
     baseURL: BASE_URL,
@@ -9,12 +9,27 @@ export const axiosInstance = axios.create({
     },
 });
 
-export async function responseTest() {
-    try {
-        const response = await axiosInstance.get("/api/test");
-        console.log("Response test:", response.data);
-    } catch (error) {
-        console.error("Error al obtener los datos:", error);
-        throw error;
+axiosInstance.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
     }
-}
+);
+
+axiosInstance.interceptors.response.use(
+    (response) => {
+        return response;
+    },
+    (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('token');
+        }
+        return Promise.reject(error);
+    }
+);

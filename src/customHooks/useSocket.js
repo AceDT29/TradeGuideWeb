@@ -2,6 +2,7 @@ import { io } from "socket.io-client";
 import { useState, useEffect } from "react"
 
 const socketUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
+const token = localStorage.getItem('token');
 
 export const socket = io(socketUrl, {
     reconnection: true,
@@ -12,6 +13,7 @@ export const socket = io(socketUrl, {
     transports: ["websocket", "polling"],
     auth: {
         serverOffset: 0,
+        authToken: token
     },
 });
 
