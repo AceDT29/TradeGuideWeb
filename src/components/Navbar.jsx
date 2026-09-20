@@ -5,8 +5,8 @@ import SessionModal from "./SessionModal";
 /**
  * Navbar — logo + app title + session button
  */
-export default function Navbar() {
-  const { onAuth } = useConnect();
+export default function Navbar({ addToast }) {
+  const { onAuth, currentUser } = useConnect();
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
 
   return (
@@ -34,10 +34,12 @@ export default function Navbar() {
           </div>
 
           {/* Spacer & Actions */}
-          <div className="ml-auto flex items-center gap-4">
+          <div className="ml-auto flex items-center gap-3">
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${onAuth ? 'bg-emerald-400' : 'bg-red-400'} animate-pulse`} />
-              <span className="text-xs text-slate-500">{onAuth ? 'Autenticado' : 'No Autenticado'}</span>
+              <span className="text-xs text-slate-600 font-medium">
+                {onAuth ? (currentUser?.displayName || 'Conectado') : 'No Autenticado'}
+              </span>
             </div>
 
             <button
@@ -47,10 +49,10 @@ export default function Navbar() {
                 bg-[#1a2640] hover:bg-[#1e3a5f] text-slate-300 hover:text-cyan-300
                 border border-[#1e3a5f] transition-all duration-150 flex items-center gap-1.5
               "
-              title="Abrir inicio de sesión / registro"
+              title="Abrir inicio de sesión / perfil"
             >
               <UserNavIcon />
-              <span>Sesión</span>
+              <span>{onAuth ? 'Mi Cuenta' : 'Sesión'}</span>
             </button>
           </div>
         </div>
@@ -60,6 +62,7 @@ export default function Navbar() {
       <SessionModal
         isOpen={isSessionModalOpen}
         onClose={() => setIsSessionModalOpen(false)}
+        addToast={addToast}
       />
     </>
   );

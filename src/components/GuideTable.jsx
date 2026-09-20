@@ -300,7 +300,7 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-8 gap-4">
+    <div className="flex flex-col items-center justify-center py-10 px-8 gap-4">
       <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200">
         <InboxIcon />
       </div>

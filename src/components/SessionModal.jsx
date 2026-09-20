@@ -1,177 +1,444 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { registerAuthService, loginAuthService, getSessionAuthService } from "../services/authServices";
 import { useConnect } from "../customHooks/useConnect";
 
-export default function SessionModal({ isOpen, onClose }) {
-
-    const { setOnAuth } = useConnect();
+export default function SessionModal({ isOpen, onClose, addToast }) {
+    const { onAuth, setOnAuth, currentUser, setCurrentUser, logout } = useConnect();
     const [isLogin, setIsLogin] = useState(true);
+    const [showPassword, setShowPassword] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
 
-    const [formData, setFormdata] = useState({
+    const [formData, setFormData] = useState({
         email: "",
         password: "",
         displayName: "",
     });
 
+    // Reset errors and password visibility when modal opens or tab changes
+    useEffect(() => {
+        if (isOpen) {
+            setErrorMsg("");
+            setShowPassword(false);
+        }
+    }, [isOpen, isLogin]);
+
+    // Close on Escape key
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === "Escape" && isOpen && !loading) {
+                onClose();
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isOpen, loading, onClose]);
+
+    const handleSwitchTab = (loginTab) => {
+        setIsLogin(loginTab);
+        setErrorMsg("");
+        setFormData({ email: "", password: "", displayName: "" });
+    };
+
     const authRegisterForm = async (e) => {
         e.preventDefault();
+        setErrorMsg("");
+        setLoading(true);
+
         try {
-            console.log(formData);
             const fetchdata = await registerAuthService(formData);
             if (fetchdata) {
-                setFormdata({
+                setFormData({
                     email: "",
                     password: "",
                     displayName: "",
                 });
-                const { data } = await getSessionAuthService();
+                try {
+                    const { data } = await getSessionAuthService();
+                    if (data?.user) setCurrentUser?.(data.user);
+                } catch { }
+
                 setOnAuth(true);
-                onClose(false);
-                return data;
+                addToast?.("¡Cuenta creada e inicio de sesión exitoso!", "success");
+                onClose();
             }
-        } catch (e) {
-            console.log(e);
+        } catch (err) {
+            const msg = err.message || "Error al registrar la cuenta";
+            setErrorMsg(msg);
+            addToast?.(msg, "error");
+        } finally {
+            setLoading(false);
         }
-    }
+    };
 
     const authLoginForm = async (e) => {
         e.preventDefault();
+        setErrorMsg("");
+        setLoading(true);
+
         try {
-            const fetchdata = await loginAuthService({ email: formData.email, password: formData.password });
+            const fetchdata = await loginAuthService({
+                email: formData.email.trim(),
+                password: formData.password,
+            });
+
             if (fetchdata?.status === 200 || fetchdata?.data?.status === 200) {
-                setFormdata({
+                setFormData({
                     displayName: "",
                     email: "",
-                    password: ""
+                    password: "",
                 });
-                const { data } = await getSessionAuthService();
+                try {
+                    const { data } = await getSessionAuthService();
+                    if (data?.user) setCurrentUser?.(data.user);
+                } catch { }
+
                 setOnAuth(true);
-                onClose(false);
-                return data;
+                addToast?.("¡Sesión iniciada con éxito! Bienvenido.", "success");
+                onClose();
             }
-        } catch (e) {
-            console.log(e);
+        } catch (err) {
+            const msg = err.message || "Error al iniciar sesión";
+            setErrorMsg(msg);
+            addToast?.(msg, "error");
+        } finally {
+            setLoading(false);
         }
-    }
+    };
+
+    const handleLogout = () => {
+        logout();
+        addToast?.("Sesión cerrada correctamente", "success");
+        onClose();
+    };
 
     if (!isOpen) return null;
 
     return (
-        <div onClick={() => onClose(false)} className="fixed inset-0 bg-linear-to-t from-slate-900/75 to-slate-400/70 flex justify-center items-center z-50">
-            <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-lg drop-shadow-2xl p-8 max-w-md w-full">
-                {/* Modal Header with Conditional Switch */}
-                <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-3">
-                    <div className="flex items-center gap-3">
-                        <button
-                            type="button"
-                            onClick={() => setIsLogin(true)}
-                            className={`text-xl font-bold cursor-pointer transition-colors ${isLogin
-                                    ? "text-blue-600 border-b-2 border-blue-600 pb-0.5"
-                                    : "text-gray-400 hover:text-gray-600"
-                                }`}
-                        >
-                            Iniciar Sesión
-                        </button>
-                        <span className="text-xl text-gray-300 font-bold">/</span>
-                        <button
-                            type="button"
-                            onClick={() => setIsLogin(false)}
-                            className={`text-xl font-bold cursor-pointer transition-colors ${!isLogin
-                                    ? "text-blue-600 border-b-2 border-blue-600 pb-0.5"
-                                    : "text-gray-400 hover:text-gray-600"
-                                }`}
-                        >
-                            Registro
-                        </button>
+        <div
+            onClick={() => !loading && onClose()}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn"
+        >
+            <div
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-md bg-[#0e1726] border border-[#1e3a5f] rounded-2xl shadow-[0_16px_40px_rgba(0,0,0,0.6)] overflow-hidden transition-all duration-200"
+            >
+                {/* Modal Header */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e3a5f]/60 bg-[#121e33]/50">
+                    <div className="flex items-center gap-2.5">
+                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+                            <UserHeaderIcon />
+                        </div>
+                        <h2 className="text-base font-semibold text-slate-100">
+                            {onAuth ? "Perfil de Usuario" : isLogin ? "Iniciar Sesión" : "Crear Cuenta"}
+                        </h2>
                     </div>
+
                     <button
                         type="button"
-                        onClick={() => onClose(false)}
-                        className="text-gray-500 hover:text-gray-700 cursor-pointer"
+                        onClick={() => !loading && onClose()}
+                        disabled={loading}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-[#1e3a5f]/40 transition-colors disabled:opacity-40 cursor-pointer"
+                        aria-label="Cerrar modal"
                     >
-                        <svg
-                            className="w-6 h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M6 18L18 6M6 6l12 12"
-                            />
-                        </svg>
+                        <CloseIcon />
                     </button>
                 </div>
 
-                <form onSubmit={isLogin ? authLoginForm : authRegisterForm}>
-                    {/* Campo solo visible en Registro */}
-                    {!isLogin && (
-                        <div className="mb-4">
-                            <label htmlFor="office" className="block text-gray-700 text-sm font-bold mb-2">
-                                Oficina
-                            </label>
-                            <input
-                                type="text"
-                                id="office"
-                                value={formData.displayName}
-                                onChange={(e) => setFormdata({ ...formData, displayName: e.target.value })}
-                                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                                required
-                            />
+                <div className="p-6">
+                    {/* If user is ALREADY authenticated: show profile info & logout */}
+                    {onAuth ? (
+                        <div className="space-y-5">
+                            <div className="p-4 rounded-xl bg-[#14233c]/60 border border-[#1e3a5f]/80 flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-full bg-linear-to-tr from-cyan-600 to-blue-500 flex items-center justify-center text-white text-lg font-bold shadow-md">
+                                    {(currentUser?.displayName || currentUser?.email || "U")[0].toUpperCase()}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-semibold text-slate-100 truncate">
+                                            {currentUser?.displayName || "Usuario Operador"}
+                                        </span>
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                            En línea
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-slate-400 truncate mt-0.5">
+                                        {currentUser?.email || "Sesión activa"}
+                                    </p>
+                                    {currentUser?.officeId && (
+                                        <p className="text-[11px] font-mono-guide text-cyan-400/80 truncate mt-0.5">
+                                            Oficina: {currentUser.officeId}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-2.5 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={handleLogout}
+                                    className="w-full py-2.5 px-4 rounded-xl font-medium text-sm text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer"
+                                >
+                                    <LogoutIcon />
+                                    <span>Cerrar Sesión</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        logout();
+                                        setIsLogin(true);
+                                    }}
+                                    className="w-full py-2.5 px-4 rounded-xl font-medium text-sm text-slate-400 hover:text-slate-200 hover:bg-[#1e3a5f]/30 transition-colors cursor-pointer"
+                                >
+                                    Cambiar de cuenta
+                                </button>
+                            </div>
                         </div>
+                    ) : (
+                        /* Login / Register Forms */
+                        <>
+                            {/* Tab selector */}
+                            <div className="flex p-1 mb-5 bg-[#080f1a] rounded-xl border border-[#1e3a5f]/60">
+                                <button
+                                    type="button"
+                                    onClick={() => handleSwitchTab(true)}
+                                    className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                                        isLogin
+                                            ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-sm"
+                                            : "text-slate-400 hover:text-slate-200"
+                                    }`}
+                                >
+                                    Iniciar Sesión
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleSwitchTab(false)}
+                                    className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                                        !isLogin
+                                            ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-sm"
+                                            : "text-slate-400 hover:text-slate-200"
+                                    }`}
+                                >
+                                    Registro
+                                </button>
+                            </div>
+
+                            {/* Error Alert Box */}
+                            {errorMsg && (
+                                <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-start gap-2.5 animate-fadeIn">
+                                    <div className="shrink-0 mt-0.5 text-red-400">
+                                        <AlertIcon />
+                                    </div>
+                                    <span className="flex-1 leading-relaxed">{errorMsg}</span>
+                                </div>
+                            )}
+
+                            <form onSubmit={isLogin ? authLoginForm : authRegisterForm} className="space-y-4">
+                                {/* Office / Display Name (Register only) */}
+                                {!isLogin && (
+                                    <div>
+                                        <label htmlFor="displayName" className="block text-xs font-medium text-slate-300 mb-1.5">
+                                            Nombre de Oficina / Operador
+                                        </label>
+                                        <div className="relative">
+                                            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
+                                                <OfficeIcon />
+                                            </div>
+                                            <input
+                                                id="displayName"
+                                                type="text"
+                                                required
+                                                disabled={loading}
+                                                value={formData.displayName}
+                                                onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+                                                placeholder="Ej: Oficina Central / Sucursal 01"
+                                                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#080f1a] border border-[#1e3a5f] text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all disabled:opacity-50"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Email Field */}
+                                <div>
+                                    <label htmlFor="email" className="block text-xs font-medium text-slate-300 mb-1.5">
+                                        Correo Electrónico
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
+                                            <MailIcon />
+                                        </div>
+                                        <input
+                                            id="email"
+                                            type="email"
+                                            required
+                                            disabled={loading}
+                                            value={formData.email}
+                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            placeholder="operador@ejemplo.com"
+                                            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#080f1a] border border-[#1e3a5f] text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all disabled:opacity-50"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Password Field with Toggle */}
+                                <div>
+                                    <label htmlFor="password" className="block text-xs font-medium text-slate-300 mb-1.5">
+                                        Contraseña
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
+                                            <LockIcon />
+                                        </div>
+                                        <input
+                                            id="password"
+                                            type={showPassword ? "text" : "password"}
+                                            required
+                                            disabled={loading}
+                                            value={formData.password}
+                                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                            placeholder="••••••••"
+                                            className="w-full pl-10 pr-11 py-2.5 rounded-xl bg-[#080f1a] border border-[#1e3a5f] text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all disabled:opacity-50"
+                                        />
+                                        {/* Eye Toggle Button */}
+                                        <button
+                                            type="button"
+                                            tabIndex={-1}
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                                            title={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                                            aria-label={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                                        >
+                                            {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Submit Button */}
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full mt-2 py-3 px-4 rounded-xl font-semibold text-sm text-slate-900 bg-linear-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 shadow-[0_4px_16px_rgba(34,211,238,0.25)] transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {loading ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+                                            <span>{isLogin ? "Iniciando sesión…" : "Registrando…"}</span>
+                                        </>
+                                    ) : (
+                                        <span>{isLogin ? "Iniciar Sesión" : "Crear Cuenta"}</span>
+                                    )}
+                                </button>
+                            </form>
+
+                            {/* Footer switch */}
+                            <p className="mt-5 text-center text-xs text-slate-400">
+                                {isLogin ? "¿No tienes una cuenta?" : "¿Ya tienes una cuenta?"}{" "}
+                                <button
+                                    type="button"
+                                    onClick={() => handleSwitchTab(!isLogin)}
+                                    className="text-cyan-400 hover:underline font-semibold cursor-pointer ml-1"
+                                >
+                                    {isLogin ? "Regístrate aquí" : "Inicia sesión"}
+                                </button>
+                            </p>
+                        </>
                     )}
-
-                    <div className="mb-4">
-                        <label htmlFor="email" className="block text-gray-700 text-sm font-bold mb-2">
-                            Correo Electrónico
-                        </label>
-                        <input
-                            type="email"
-                            id="email"
-                            value={formData.email}
-                            onChange={(e) => setFormdata({ ...formData, email: e.target.value })}
-                            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                            required
-                        />
-                    </div>
-
-                    <div className="mb-6">
-                        <label htmlFor="password" className="block text-gray-700 text-sm font-bold mb-2">
-                            Contraseña
-                        </label>
-                        <input
-                            type="password"
-                            id="password"
-                            value={formData.password}
-                            onChange={(e) => setFormdata({ ...formData, password: e.target.value })}
-                            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                            required
-                        />
-                    </div>
-
-                    <div className="flex flex-col gap-3">
-                        <button
-                            type="submit"
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-150 cursor-pointer"
-                        >
-                            {isLogin ? "Iniciar Sesión" : "Registrarse"}
-                        </button>
-                    </div>
-                </form>
-
-                <p className="mt-4 text-center text-sm text-gray-600">
-                    {isLogin ? "¿No tienes una cuenta?" : "¿Ya tienes una cuenta?"}{" "}
-                    <button
-                        type="button"
-                        onClick={() => setIsLogin(!isLogin)}
-                        className="text-blue-600 hover:underline font-semibold cursor-pointer"
-                    >
-                        {isLogin ? "Regístrate aquí" : "Inicia sesión aquí"}
-                    </button>
-                </p>
+                </div>
             </div>
         </div>
+    );
+}
+
+// ── Icons ─────────────────────────────────────────────────────────────
+
+function UserHeaderIcon() {
+    return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+        </svg>
+    );
+}
+
+function CloseIcon() {
+    return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+    );
+}
+
+function MailIcon() {
+    return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2" />
+            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+        </svg>
+    );
+}
+
+function LockIcon() {
+    return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+    );
+}
+
+function OfficeIcon() {
+    return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 21h18" />
+            <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16" />
+            <path d="M9 7h2" />
+            <path d="M13 7h2" />
+            <path d="M9 11h2" />
+            <path d="M13 11h2" />
+            <path d="M9 15h2" />
+            <path d="M13 15h2" />
+        </svg>
+    );
+}
+
+function EyeIcon() {
+    return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+            <circle cx="12" cy="12" r="3" />
+        </svg>
+    );
+}
+
+function EyeOffIcon() {
+    return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+            <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+            <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+            <line x1="2" y1="2" x2="22" y2="22" />
+        </svg>
+    );
+}
+
+function AlertIcon() {
+    return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+    );
+}
+
+function LogoutIcon() {
+    return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
     );
 }

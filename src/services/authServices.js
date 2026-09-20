@@ -8,14 +8,19 @@ export async function registerAuthService(formData) {
             password,
             displayName
         });
-        if (response.status === 201) {
+        if (response.status === 201 && response.data?.token) {
             localStorage.setItem("token", response.data.token);
-            localStorage.setItem("officeId", response.data.officeId);
+            if (response.data.officeId) {
+                localStorage.setItem("officeId", response.data.officeId);
+            }
         }
         return response;
     } catch (error) {
         console.error("Error al registrar al usuario:", error);
-        throw error;
+        const errorMsg = error.response?.data?.message || error.response?.data?.error || (error.response?.status === 500 ? "Error interno del servidor" : "Error al registrar la cuenta");
+        const customError = new Error(errorMsg);
+        customError.response = error.response;
+        throw customError;
     }
 }
 
@@ -24,19 +29,23 @@ export async function loginAuthService(data) {
         const response = await axiosInstance.post("/api/auth/login", data);
         if (response.data?.token) {
             localStorage.setItem("token", response.data.token);
-            localStorage.setItem("officeId", response.data.officeId);
+            if (response.data.officeId) {
+                localStorage.setItem("officeId", response.data.officeId);
+            }
         }
         return response;
     } catch (error) {
         console.error("Error al iniciar sesión:", error);
-        throw error;
+        const errorMsg = error.response?.data?.message || error.response?.data?.error || (error.response?.status === 500 ? "Error interno del servidor" : "Error al iniciar sesión");
+        const customError = new Error(errorMsg);
+        customError.response = error.response;
+        throw customError;
     }
 }
 
-
-export function getSessionAuthService() {
+export async function getSessionAuthService() {
     try {
-        const response = axiosInstance.get("/api/auth/return-user");
+        const response = await axiosInstance.get("/api/auth/return-user");
         return response;
     } catch (error) {
         console.error("Error al obtener la sesión:", error);

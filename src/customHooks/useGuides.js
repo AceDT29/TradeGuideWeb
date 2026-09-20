@@ -92,13 +92,21 @@ export function useGuides() {
       });
     };
 
+    const handleGuidesCleared = () => {
+      setGuides([]);
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.setItem(CLEANUP_KEY, String(Date.now()));
+    };
+
     socket.on("initialGuides", handleInitialGuides);
     socket.on("chatGuide", handleNewGuide);
+    socket.on("guidesCleared", handleGuidesCleared);
 
     // Limpiar el evento cuando se desmonte o cambie la conexión/socket
     return () => {
       socket.off("initialGuides", handleInitialGuides);
       socket.off("chatGuide", handleNewGuide);
+      socket.off("guidesCleared", handleGuidesCleared);
     };
   }, [onAuth, socket]);
 

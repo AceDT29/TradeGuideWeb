@@ -136,10 +136,10 @@ export default function GuideScanner({ onAdd, onError, disabled = false }) {
   const isFull = value.length === GUIDE_LENGTH;
 
   return (
-    <section className="mb-8 animate-fadeInUp">
+    <section className="mb-4 animate-fadeInUp">
       <label
         htmlFor="guide-input"
-        className="block text-xs font-semibold text-slate-100 uppercase tracking-widest mb-3"
+        className="block text-xs font-semibold text-slate-100 uppercase tracking-widest mb-2"
       >
         Número de Guía
       </label>
@@ -172,7 +172,7 @@ export default function GuideScanner({ onAdd, onError, disabled = false }) {
           placeholder="Escanea o ingresa el número de guía…"
           maxLength={GUIDE_LENGTH}
           className={`
-            w-full pl-14 pr-20 py-5 rounded-2xl
+            w-full pl-14 pr-20 py-3 rounded-2xl
             font-mono-guide text-lg text-slate-900/60
             placeholder:text-slate-700 placeholder:font-sans placeholder:text-base
             bg-slate-100/80 outline-none transition-all duration-200
@@ -201,7 +201,7 @@ export default function GuideScanner({ onAdd, onError, disabled = false }) {
         </div>
 
         {/* Bottom progress bar */}
-        <div className="absolute bottom-0 left-4 right-4 h-[4px] rounded-full overflow-hidden bg-slate-50/40">
+        <div className="absolute bottom-0 left-4 right-4 h-1 rounded-full overflow-hidden bg-slate-50/40">
           <div
             className={`h-full rounded-full transition-all duration-150 ${isFull ? 'bg-blue-400/70' : 'bg-green-600/70'
               }`}

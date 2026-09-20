@@ -64,7 +64,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#4172d5]">
-      <Navbar />
+      <Navbar addToast={addToast} />
 
       <main className="max-w-4xl mx-auto px-4 py-5">
         <GuideScanner
