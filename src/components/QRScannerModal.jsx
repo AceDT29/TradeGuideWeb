@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Html5Qrcode } from 'html5-qrcode';
+import { playSuccessBeep, playErrorSound, playDuplicateSound } from '../lib/audio';
 
 const SCAN_COOLDOWN_MS = 1500;
 const GUIDE_MAX_LENGTH = 10;
@@ -23,11 +24,12 @@ function parseGuideFromQR(raw) {
  * to scan QR codes and extract guide numbers.
  *
  * Props:
+ *  - existingGuides: array of currently loaded guides to prevent duplicate scans
  *  - onScan(code)  : called with the validated guide code
- *  - onError(msg)  : called when the QR content isn't a valid guide
+ *  - onError(msg)  : called when the QR content isn't a valid guide or is duplicate
  *  - onClose()     : called when user wants to close the scanner
  */
-export default function QRScannerModal({ onScan, onError, onClose }) {
+export default function QRScannerModal({ existingGuides = [], onScan, onError, onClose }) {
   const [status, setStatus] = useState('starting'); // starting | scanning | error
   const [errorMsg, setErrorMsg] = useState('');
   const [lastScanned, setLastScanned] = useState('');
@@ -36,6 +38,11 @@ export default function QRScannerModal({ onScan, onError, onClose }) {
   const scannerRef = useRef(null);
   const cooldownRef = useRef(false);
   const mountedRef = useRef(true);
+  const existingGuidesRef = useRef(existingGuides);
+
+  useEffect(() => {
+    existingGuidesRef.current = existingGuides;
+  }, [existingGuides]);
 
   const triggerFlash = useCallback((type) => {
     setFlash(type);
@@ -96,16 +103,29 @@ export default function QRScannerModal({ onScan, onError, onClose }) {
             // Same Zoom guide validation as GuideScanner
             const isValidZoomGuide = /^(9\d{8}|[12]\d{9})$/.test(guideCode);
 
-            if (isValidZoomGuide) {
+            if (!isValidZoomGuide) {
+              // Haptic error
+              if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+
+              // Play invalid format audio error
+              playErrorSound();
+              triggerFlash('error');
+              onError?.(`Código ignorado (no es una guía válida de Zoom): ${guideCode || decodedText}`);
+            } else if (existingGuidesRef.current.some((g) => g.code === guideCode)) {
+              // Haptic error
+              if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+
+              // Play duplicate package audio error
+              playDuplicateSound();
+              triggerFlash('error');
+              onError?.(`Código ignorado (ya existe en la lista): ${guideCode}`);
+            } else {
+              // Valid and newly added package!
               // Haptic feedback
               if (navigator.vibrate) navigator.vibrate(100);
 
-              // Play success sound
-              try {
-                const audio = new Audio('/audio/success-beep.mp3');
-                audio.volume = 0.5;
-                audio.play().catch(() => { });
-              } catch { }
+              // Play success scanner beep
+              playSuccessBeep();
 
               setLastScanned(guideCode);
               triggerFlash('success');
@@ -115,12 +135,6 @@ export default function QRScannerModal({ onScan, onError, onClose }) {
               setTimeout(() => {
                 if (mountedRef.current) onClose();
               }, 700);
-            } else {
-              // Haptic error — silently ignore non-guide QRs (e.g. security codes)
-              if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
-
-              triggerFlash('error');
-              // Don't spam toast for every wrong QR, just flash red
             }
 
             // Reset cooldown

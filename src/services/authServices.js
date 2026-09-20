@@ -10,7 +10,7 @@ export async function registerAuthService(formData) {
         });
         if (response.status === 201) {
             localStorage.setItem("token", response.data.token);
-            console.log("beta guardado!")
+            localStorage.setItem("officeId", response.data.officeId);
         }
         return response;
     } catch (error) {
@@ -24,6 +24,7 @@ export async function loginAuthService(data) {
         const response = await axiosInstance.post("/api/auth/login", data);
         if (response.data?.token) {
             localStorage.setItem("token", response.data.token);
+            localStorage.setItem("officeId", response.data.officeId);
         }
         return response;
     } catch (error) {

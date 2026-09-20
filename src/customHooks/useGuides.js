@@ -60,20 +60,44 @@ export function useGuides() {
   useEffect(() => {
     if (!onAuth || !socket) return;
 
-    const handleNewGuide = (newGuide) => {
+    const handleInitialGuides = (serverGuides) => {
+      if (!Array.isArray(serverGuides)) return;
       setGuides((prev) => {
-        // Evitar duplicados (ej: si fuimos nosotros mismos quienes enviamos la guía)
-        const exists = prev.some((g) => g.id === newGuide.id);
-        if (exists) return prev;
+        const map = new Map();
+        prev.forEach((g) => {
+          const key = g.id || g.code;
+          if (key) map.set(key, g);
+        });
+        serverGuides.forEach((g) => {
+          if (!g) return;
+          const key = g.id || g.code;
+          if (key && !map.has(key)) {
+            map.set(key, g);
+          }
+        });
+        return Array.from(map.values());
+      });
+    };
 
+    const handleNewGuide = (newGuide) => {
+      if (!newGuide) return;
+      if (Array.isArray(newGuide)) {
+        handleInitialGuides(newGuide);
+        return;
+      }
+      setGuides((prev) => {
+        const exists = prev.some((g) => (g.id && g.id === newGuide.id) || (g.code && g.code === newGuide.code));
+        if (exists) return prev;
         return [...prev, newGuide];
       });
     };
 
+    socket.on("initialGuides", handleInitialGuides);
     socket.on("chatGuide", handleNewGuide);
 
     // Limpiar el evento cuando se desmonte o cambie la conexión/socket
     return () => {
+      socket.off("initialGuides", handleInitialGuides);
       socket.off("chatGuide", handleNewGuide);
     };
   }, [onAuth, socket]);

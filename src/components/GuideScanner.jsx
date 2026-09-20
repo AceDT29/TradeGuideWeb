@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGuides } from "../customHooks/useGuides"
 import QRScannerModal from './QRScannerModal';
+import { playSuccessBeep, playErrorSound, playDuplicateSound } from '../lib/audio';
 
 const GUIDE_LENGTH = 10;
 
@@ -109,9 +110,7 @@ export default function GuideScanner({ onAdd, onError, disabled = false }) {
     const isValidZoomGuide = /^(9\d{8}|[12]\d{9})$/.test(trimmed);
 
     if (!isValidZoomGuide) {
-      const audio = new Audio('/audio/error-voice.mp3');
-      audio.play().catch(e => console.log('Audio error:', e));
-
+      playErrorSound();
       onError(`Código ignorado (no es una guía válida de Zoom): ${trimmed}`);
       triggerShake();
       setValue('');
@@ -119,15 +118,14 @@ export default function GuideScanner({ onAdd, onError, disabled = false }) {
     }
 
     if (guides.some((g) => g.code === trimmed)) {
-      const audio = new Audio('/audio/duplicate-error-voice.mp3');
-      audio.play().catch(e => console.log('Audio error:', e));
-
+      playDuplicateSound();
       onError(`Código ignorado (ya existe en la lista): ${trimmed}`);
       triggerShake();
       setValue('');
       return;
     }
 
+    playSuccessBeep();
     onAdd(trimmed);
     setValue('');
   };
@@ -243,6 +241,7 @@ export default function GuideScanner({ onAdd, onError, disabled = false }) {
       {/* QR Scanner Modal */}
       {showQR && (
         <QRScannerModal
+          existingGuides={guides}
           onScan={(code) => {
             onAdd(code);
           }}

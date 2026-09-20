@@ -13,6 +13,7 @@ export function ConnectContext({ children }) {
     useEffect(() => {
         if (onAuth) {
             const token = localStorage.getItem('token');
+            const officeId = localStorage.getItem('officeId');
             const newSocket = io(socketUrl, {
                 reconnection: true,
                 reconnectionAttempts: Infinity, // Seguir intentando sin rendirse
@@ -21,9 +22,13 @@ export function ConnectContext({ children }) {
                 timeout: 60000, // Darle 60 segundos al servidor para responder (Render free tier)
                 transports: ["websocket", "polling"],
                 auth: {
+                    // El servidor valida el token y cross-valida que officeId
+                    // coincide con el firmado en el token antes de unir a la sala.
                     token: token ? `Bearer ${token}` : "",
+                    officeId: officeId ?? "",
                     serverOffset: 0,
                 },
+                withCredentials: true
             });
             setSocket(newSocket);
             newSocket.on("connect", () => {
