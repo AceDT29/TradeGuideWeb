@@ -1,18 +1,21 @@
 import { useState, useEffect } from "react";
 import { registerAuthService, loginAuthService, getSessionAuthService } from "../services/authServices";
 import { useConnect } from "../customHooks/useConnect";
+import { getBrowserDeviceInfo } from "../lib/deviceInfo";
 
 export default function SessionModal({ isOpen, onClose, addToast }) {
     const { onAuth, setOnAuth, currentUser, setCurrentUser, logout } = useConnect();
     const [isLogin, setIsLogin] = useState(true);
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [logoutAllLoading, setLogoutAllLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
 
     const [formData, setFormData] = useState({
         email: "",
         password: "",
         displayName: "",
+        rememberMe: true,
     });
 
     // Reset errors and password visibility when modal opens or tab changes
@@ -26,18 +29,18 @@ export default function SessionModal({ isOpen, onClose, addToast }) {
     // Close on Escape key
     useEffect(() => {
         const handleKeyDown = (e) => {
-            if (e.key === "Escape" && isOpen && !loading) {
+            if (e.key === "Escape" && isOpen && !loading && !logoutAllLoading) {
                 onClose();
             }
         };
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [isOpen, loading, onClose]);
+    }, [isOpen, loading, logoutAllLoading, onClose]);
 
     const handleSwitchTab = (loginTab) => {
         setIsLogin(loginTab);
         setErrorMsg("");
-        setFormData({ email: "", password: "", displayName: "" });
+        setFormData({ email: "", password: "", displayName: "", rememberMe: true });
     };
 
     const authRegisterForm = async (e) => {
@@ -52,6 +55,7 @@ export default function SessionModal({ isOpen, onClose, addToast }) {
                     email: "",
                     password: "",
                     displayName: "",
+                    rememberMe: true,
                 });
                 try {
                     const { data } = await getSessionAuthService();
@@ -80,13 +84,15 @@ export default function SessionModal({ isOpen, onClose, addToast }) {
             const fetchdata = await loginAuthService({
                 email: formData.email.trim(),
                 password: formData.password,
+                rememberMe: formData.rememberMe,
             });
 
-            if (fetchdata?.status === 200 || fetchdata?.data?.status === 200) {
+            if (fetchdata?.status === 200 || fetchdata?.data?.status === 200 || fetchdata?.data?.ok) {
                 setFormData({
                     displayName: "",
                     email: "",
                     password: "",
+                    rememberMe: true,
                 });
                 try {
                     const { data } = await getSessionAuthService();
@@ -106,17 +112,39 @@ export default function SessionModal({ isOpen, onClose, addToast }) {
         }
     };
 
-    const handleLogout = () => {
-        logout();
-        addToast?.("Sesión cerrada correctamente", "success");
-        onClose();
+    const handleLogout = async (allDevices = false) => {
+        if (allDevices) {
+            const confirmLogout = window.confirm("¿Seguro que deseas cerrar la sesión en TODOS los dispositivos y escáneres vinculados a esta cuenta?");
+            if (!confirmLogout) return;
+            setLogoutAllLoading(true);
+        } else {
+            setLoading(true);
+        }
+
+        try {
+            await logout(allDevices);
+            addToast?.(
+                allDevices
+                    ? "Sesiones cerradas en todos los dispositivos"
+                    : "Sesión cerrada en este dispositivo",
+                "success"
+            );
+            onClose();
+        } catch (err) {
+            addToast?.(err.message || "Error al cerrar sesión", "error");
+        } finally {
+            setLoading(false);
+            setLogoutAllLoading(false);
+        }
     };
 
     if (!isOpen) return null;
 
+    const currentDeviceName = getBrowserDeviceInfo();
+
     return (
         <div
-            onClick={() => !loading && onClose()}
+            onClick={() => !loading && !logoutAllLoading && onClose()}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn"
         >
             <div
@@ -136,8 +164,8 @@ export default function SessionModal({ isOpen, onClose, addToast }) {
 
                     <button
                         type="button"
-                        onClick={() => !loading && onClose()}
-                        disabled={loading}
+                        onClick={() => !loading && !logoutAllLoading && onClose()}
+                        disabled={loading || logoutAllLoading}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-[#1e3a5f]/40 transition-colors disabled:opacity-40 cursor-pointer"
                         aria-label="Cerrar modal"
                     >
@@ -146,11 +174,11 @@ export default function SessionModal({ isOpen, onClose, addToast }) {
                 </div>
 
                 <div className="p-6">
-                    {/* If user is ALREADY authenticated: show profile info & logout */}
+                    {/* If user is ALREADY authenticated: show profile info & logout options */}
                     {onAuth ? (
                         <div className="space-y-5">
                             <div className="p-4 rounded-xl bg-[#14233c]/60 border border-[#1e3a5f]/80 flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-full bg-linear-to-tr from-cyan-600 to-blue-500 flex items-center justify-center text-white text-lg font-bold shadow-md">
+                                <div className="w-12 h-12 rounded-full bg-linear-to-tr from-cyan-600 to-blue-500 flex items-center justify-center text-white text-lg font-bold shadow-md shrink-0">
                                     {(currentUser?.displayName || currentUser?.email || "U")[0].toUpperCase()}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -174,22 +202,51 @@ export default function SessionModal({ isOpen, onClose, addToast }) {
                                 </div>
                             </div>
 
+                            {/* Device indicator banner */}
+                            <div className="px-3.5 py-2.5 rounded-xl bg-[#080f1a] border border-[#1e3a5f]/50 flex items-center gap-2 text-xs text-slate-300">
+                                <DevicesIcon />
+                                <span className="text-slate-400">Dispositivo actual:</span>
+                                <span className="text-cyan-300 font-medium truncate">{currentDeviceName}</span>
+                            </div>
+
                             <div className="flex flex-col gap-2.5 pt-2">
                                 <button
                                     type="button"
-                                    onClick={handleLogout}
-                                    className="w-full py-2.5 px-4 rounded-xl font-medium text-sm text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer"
+                                    disabled={loading || logoutAllLoading}
+                                    onClick={() => handleLogout(false)}
+                                    className="w-full py-2.5 px-4 rounded-xl font-medium text-sm text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                                 >
-                                    <LogoutIcon />
-                                    <span>Cerrar Sesión</span>
+                                    {loading ? (
+                                        <div className="w-4 h-4 border-2 border-red-300 border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                        <LogoutIcon />
+                                    )}
+                                    <span>Cerrar Sesión en este dispositivo</span>
                                 </button>
+
                                 <button
                                     type="button"
+                                    disabled={loading || logoutAllLoading}
+                                    onClick={() => handleLogout(true)}
+                                    className="w-full py-2.5 px-4 rounded-xl font-medium text-xs text-amber-300/90 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                                    title="Revoca todas las sesiones y refresh tokens en todos los dispositivos"
+                                >
+                                    {logoutAllLoading ? (
+                                        <div className="w-4 h-4 border-2 border-amber-300 border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                        <ShieldLockIcon />
+                                    )}
+                                    <span>Cerrar sesión en todos los dispositivos</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    disabled={loading || logoutAllLoading}
                                     onClick={() => {
-                                        logout();
+                                        logout(false);
                                         setIsLogin(true);
                                     }}
-                                    className="w-full py-2.5 px-4 rounded-xl font-medium text-sm text-slate-400 hover:text-slate-200 hover:bg-[#1e3a5f]/30 transition-colors cursor-pointer"
+                                    className="w-full py-2 px-4 rounded-xl font-medium text-xs text-slate-400 hover:text-slate-200 hover:bg-[#1e3a5f]/30 transition-colors cursor-pointer disabled:opacity-50"
                                 >
                                     Cambiar de cuenta
                                 </button>
@@ -312,6 +369,24 @@ export default function SessionModal({ isOpen, onClose, addToast }) {
                                             {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                                         </button>
                                     </div>
+                                </div>
+
+                                {/* Remember Me Checkbox */}
+                                <div className="flex items-center justify-between pt-1">
+                                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.rememberMe}
+                                            onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
+                                            className="w-4 h-4 rounded bg-[#080f1a] border-[#1e3a5f] text-cyan-500 focus:ring-cyan-400 focus:ring-offset-0 focus:ring-1 cursor-pointer"
+                                        />
+                                        <span className="text-xs text-slate-300 font-medium">
+                                            Recordar este dispositivo
+                                        </span>
+                                    </label>
+                                    <span className="text-[10px] text-slate-400">
+                                        {formData.rememberMe ? "90 días" : "24 horas"}
+                                    </span>
                                 </div>
 
                                 {/* Submit Button */}
@@ -439,6 +514,26 @@ function LogoutIcon() {
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
             <polyline points="16 17 21 12 16 7" />
             <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+    );
+}
+
+function ShieldLockIcon() {
+    return (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            <path d="M12 8v4" />
+            <path d="M12 16h.01" />
+        </svg>
+    );
+}
+
+function DevicesIcon() {
+    return (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-400 shrink-0">
+            <rect x="4" y="2" width="16" height="12" rx="2" />
+            <path d="M2 18h20" />
+            <path d="M12 14v4" />
         </svg>
     );
 }
