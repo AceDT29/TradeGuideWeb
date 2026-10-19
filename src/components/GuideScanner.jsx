@@ -175,7 +175,7 @@ export default function GuideScanner({ onAdd, onError, disabled = false }) {
             w-full pl-14 pr-20 py-3 rounded-2xl
             font-mono-guide text-lg text-slate-900/60
             placeholder:text-slate-700 placeholder:font-sans placeholder:text-base
-            bg-slate-100/80 outline-none transition-all duration-200
+            bg-slate-100/95 outline-none transition-all duration-200
             disabled:opacity-50 disabled:cursor-not-allowed
             ${shake
               ? 'border-2 border-red-500/80 shadow-[0_0_0_3px_rgba(239,68,68,0.15)]'
@@ -210,7 +210,7 @@ export default function GuideScanner({ onAdd, onError, disabled = false }) {
         </div>
       </div>
 
-      <p className="mt-2.5 ml-1 text-xs text-slate-100">
+      <p className="mt-2.5 ml-1 text-sm text-slate-100">
         Presiona{' '}
         <kbd className="px-1.5 py-0.5 rounded bg-[#1e3a5f]/60 text-slate-400 font-mono-guide text-[11px]">
           Enter

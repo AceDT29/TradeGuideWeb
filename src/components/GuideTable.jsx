@@ -63,11 +63,11 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
 
         {/* Title & Count Badge */}
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-white/90 whitespace-nowrap">
+          <h2 className="text-sm font-bold text-white drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.4)] tracking-wide whitespace-nowrap">
             Guías registradas
           </h2>
           {!isEmpty && (
-            <span className="text-xs font-medium text-blue-700 bg-white/80 border border-white/60 px-2.5 py-0.5 rounded-full shadow-xs">
+            <span className="text-xs font-bold text-sky-800 bg-white/95 border border-white px-2.5 py-0.5 rounded-full shadow-sm">
               {cleanSearch ? `${filteredGuides.length} de ${guides.length}` : guides.length}
             </span>
           )}
@@ -76,7 +76,7 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
         {/* Search / Indexer Input */}
         {!isEmpty && (
           <div className="relative flex-1 max-w-xs">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
               <SearchIcon />
             </div>
             <input
@@ -93,10 +93,10 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
               }}
               placeholder="Buscar o indexar guía..."
               className="
-                w-full pl-9 pr-8 py-1.5 text-xs rounded-xl
-                bg-white/80 border border-white/60 text-slate-700 placeholder-slate-400
-                focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400
-                transition-all duration-150 shadow-xs
+                w-full pl-9 pr-8 py-1.5 text-xs rounded-xl font-medium
+                bg-white/95 backdrop-blur-md border border-white text-slate-800 placeholder-slate-400
+                focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-400
+                transition-all duration-150 shadow-[0_2px_8px_rgba(15,23,42,0.08)]
               "
             />
             {searchTerm && (
@@ -120,9 +120,9 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
               id="export-pdf-btn"
               onClick={() => exportGuidesToPDF(filteredGuides)}
               className="
-                flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs font-medium cursor-pointer
-                bg-white/80 text-slate-600 border border-white/60
-                hover:text-red-600 hover:border-red-300 hover:bg-white
+                flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs font-semibold cursor-pointer
+                bg-white/95 text-slate-700 border border-white
+                hover:text-red-600 hover:border-red-200 hover:bg-white hover:shadow-md
                 transition-all duration-150 shadow-sm
               "
               title={cleanSearch ? "Exportar guías filtradas a PDF" : "Exportar todas las guías a PDF"}
@@ -136,9 +136,9 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
               id="copy-all-btn"
               onClick={() => onCopyAll(filteredGuides)}
               className="
-                flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs font-medium cursor-pointer
-                bg-white/80 text-slate-600 border border-white/60
-                hover:text-blue-700 hover:border-blue-300 hover:bg-white
+                flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs font-semibold cursor-pointer
+                bg-white/95 text-slate-700 border border-white
+                hover:text-sky-700 hover:border-sky-200 hover:bg-white hover:shadow-md
                 transition-all duration-150 shadow-sm
               "
               title={cleanSearch ? "Copiar guías filtradas al portapapeles" : "Copiar todas las guías al portapapeles"}
@@ -152,9 +152,9 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
               id="clear-all-btn"
               onClick={onClearAll}
               className="
-                flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs font-medium cursor-pointer
-                bg-white/80 text-slate-500 border border-white/60
-                hover:text-red-500 hover:border-red-300 hover:bg-white
+                flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs font-semibold cursor-pointer
+                bg-white/95 text-slate-600 border border-white
+                hover:text-red-600 hover:border-red-200 hover:bg-white hover:shadow-md
                 transition-all duration-150 shadow-sm
               "
             >
@@ -179,7 +179,7 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
             <table className="w-full border-collapse">
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(148,163,184,0.3)' }}
-                  className="bg-slate-50/80">
+                  className="bg-slate-50/95">
                   <th className="px-4 py-2.5 text-center text-xs font-semibold text-slate-400 uppercase tracking-widest w-12">
                     #
                   </th>
@@ -318,7 +318,7 @@ function EmptyState() {
 
 function SearchEmptyState({ searchTerm, onClear }) {
   return (
-    <div className="flex flex-col items-center justify-center py-14 px-6 gap-3 text-center">
+    <div className="relative flex flex-col items-center justify-center py-14 px-6 gap-3 text-center">
       <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600">
         <SearchIcon />
       </div>

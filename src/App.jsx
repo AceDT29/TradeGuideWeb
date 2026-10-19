@@ -6,6 +6,7 @@ import ClearAllModal from './components/ClearAllModal';
 import Toast from './components/Toast';
 import { useGuides } from './customHooks/useGuides';
 import { useToast } from './customHooks/useToast';
+import guidesAdminBg from "./assets/guidesAdminBg.png"
 
 export default function App() {
   const { guides, addGuide, removeGuide, clearAll } = useGuides();
@@ -63,24 +64,40 @@ export default function App() {
   // ── Render ────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#4172d5]">
-      <Navbar addToast={addToast} />
+    <div className="min-h-screen relative overflow-x-hidden bg-[#15A2E4] flex flex-col justify-between">
+      <div className="relative z-10 flex flex-col flex-1">
+        <Navbar addToast={addToast} />
 
-      <main className="max-w-4xl mx-auto px-4 py-5">
-        <GuideScanner
-          onAdd={handleAdd}
-          onError={handleError}
-          disabled={showClearModal}
-        />
+        <main className="py-5 px-4 pb-24 flex-1">
+          <section className="flex mx-auto flex-col gap-5 max-w-4xl">
+            <GuideScanner
+              onAdd={handleAdd}
+              onError={handleError}
+              disabled={showClearModal}
+            />
 
-        <GuideTable
-          guides={guides}
-          onCopyOne={handleCopyOne}
-          onRemove={removeGuide}
-          onCopyAll={handleCopyAll}
-          onClearAll={() => setShowClearModal(true)}
+            <GuideTable
+              guides={guides}
+              onCopyOne={handleCopyOne}
+              onRemove={removeGuide}
+              onCopyAll={handleCopyAll}
+              onClearAll={() => setShowClearModal(true)}
+            />
+          </section>
+
+          <footer>
+          </footer>
+        </main>
+      </div>
+
+      {/* Background vectors decoration (fijo al viewport y más abajo) */}
+      <figure className="pointer-events-none select-none fixed -bottom-28 left-0 w-full z-0 flex justify-center overflow-hidden">
+        <img
+          src={guidesAdminBg}
+          alt="Trade vectors background"
+          className="w-full max-w-[1607px] h-auto object-contain object-bottom block opacity-75"
         />
-      </main>
+      </figure>
 
       {/* Confirmation modal */}
       {showClearModal && (
