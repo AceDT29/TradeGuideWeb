@@ -4,7 +4,15 @@ import { exportGuidesToPDF } from '../lib/pdfExport';
 
 const PAGE_SIZE = 10;
 
-export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onClearAll }) {
+export default function GuideTable({
+  guides,
+  onCopyOne,
+  onRemove,
+  onCopyAll,
+  onClearAll,
+  onUpdateGuide,
+  comparisonStats,
+}) {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const prevLengthRef = useRef(guides.length);
@@ -22,9 +30,13 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
 
   const cleanSearch = searchTerm.trim().toLowerCase();
 
-  // Filter guides by search term (matches guide code)
+  // Filter guides by search term (matches guide code or owner name)
   const filteredGuides = cleanSearch
-    ? guides.filter((g) => g.code.toLowerCase().includes(cleanSearch))
+    ? guides.filter(
+        (g) =>
+          g.code.toLowerCase().includes(cleanSearch) ||
+          (g.owner && g.owner.toLowerCase().includes(cleanSearch))
+      )
     : guides;
 
   const totalPages = Math.max(1, Math.ceil(filteredGuides.length / PAGE_SIZE));
@@ -58,12 +70,40 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
   return (
     <section className="animate-fadeInUp mt-12 md:mt-0" style={{ animationDelay: '0.08s' }}>
 
+      {/* ── Mobile-only Manifest Progress Indicator (Solo lectura) ── */}
+      {comparisonStats?.hasManifest && (
+        <div className="md:hidden mb-3 p-3 rounded-2xl bg-white/95 backdrop-blur-md border border-white/80 shadow-xs flex items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-slate-800">
+                Progreso Hoja de Ruta
+              </span>
+              <span className="text-[11px] text-slate-500">
+                {comparisonStats.scannedCount} de {comparisonStats.totalExpected} paquetes
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200">
+              {comparisonStats.percentage}%
+            </span>
+            <div className="w-16 h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+              <div
+                className="h-full bg-blue-600 rounded-full transition-all duration-300"
+                style={{ width: `${Math.min(comparisonStats.percentage, 100)}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Table header bar ───────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4 z-0">
 
         {/* Title & Count Badge */}
-        <div className="flex items-center gap-2">
-          <h2 className="text-sm font-bold text-white drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.4)] tracking-wide whitespace-nowrap">
+        <div className="flex items-center gap-2 bg-slate-100 rounded-xl p-2 order-1">
+          <h2 className="text-sm text-slate-700 tracking-wide whitespace-nowrap">
             Guías registradas
           </h2>
           {!isEmpty && (
@@ -75,7 +115,7 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
 
         {/* Search / Indexer Input */}
         {!isEmpty && (
-          <div className="relative flex-1 max-w-xs">
+          <div className="relative flex-1 max-w-xs order-0">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
               <SearchIcon />
             </div>
@@ -91,7 +131,7 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
                   clearSearch();
                 }
               }}
-              placeholder="Buscar o indexar guía..."
+              placeholder="Buscar por guía o dueño..."
               className="
                 w-full pl-9 pr-8 py-1.5 text-xs rounded-xl font-medium
                 bg-white/95 backdrop-blur-md border border-white text-slate-800 placeholder-slate-400
@@ -180,16 +220,28 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(148,163,184,0.3)' }}
                   className="bg-slate-50/95">
-                  <th className="px-4 py-2.5 text-center text-xs font-semibold text-slate-400 uppercase tracking-widest w-12">
+                  <th className="hidden sm:table-cell px-2 py-2.5 text-center text-xs font-semibold text-slate-400 uppercase tracking-widest w-10" title="Estado de Entrega">
+                    ✓
+                  </th>
+                  <th className="hidden sm:table-cell px-2 py-2.5 text-center text-xs font-semibold text-slate-400 uppercase tracking-widest w-10">
                     #
                   </th>
-                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-widest w-28">
+                  <th className="hidden sm:table-cell px-2 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-widest w-20">
                     Fecha
                   </th>
-                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-widest">
+                  <th className="px-3 sm:px-4 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-widest w-36 sm:w-44">
                     Nro. de Guía
                   </th>
-                  <th className="px-4 py-2.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-widest w-44">
+                  <th className="hidden sm:table-cell px-3 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-widest min-w-[200px]">
+                    Dueño del paquete
+                  </th>
+                  <th className="hidden sm:table-cell px-2 py-2.5 text-center text-xs font-semibold text-slate-400 uppercase tracking-widest w-16">
+                    Tipo
+                  </th>
+                  <th className="hidden sm:table-cell px-2 py-2.5 text-center text-xs font-semibold text-slate-400 uppercase tracking-widest w-20">
+                    Cobro
+                  </th>
+                  <th className="px-3 sm:px-4 py-2.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-widest w-28 sm:w-36">
                     Acciones
                   </th>
                 </tr>
@@ -202,6 +254,7 @@ export default function GuideTable({ guides, onCopyOne, onRemove, onCopyAll, onC
                     index={guides.findIndex((g) => g.id === guide.id)}  // Global row position
                     onCopy={onCopyOne}
                     onRemove={onRemove}
+                    onUpdate={onUpdateGuide}
                   />
                 ))}
               </tbody>

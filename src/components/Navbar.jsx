@@ -5,7 +5,7 @@ import SessionModal from "./SessionModal";
 /**
  * Navbar — logo + app title + session button
  */
-export default function Navbar({ addToast }) {
+export default function Navbar({ addToast, onOpenManifest, hasManifest }) {
   const { onAuth, currentUser } = useConnect();
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
 
@@ -34,8 +34,26 @@ export default function Navbar({ addToast }) {
           </div>
 
           {/* Spacer & Actions */}
-          <div className="ml-auto flex items-center gap-3">
-            <div className="flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            {/* Hoja de Ruta Zoom PDF Button (Desktop only) */}
+            <button
+              id="open-manifest-btn"
+              onClick={onOpenManifest}
+              className="
+                hidden md:flex px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer
+                bg-white hover:bg-slate-50 text-slate-700 hover:text-blue-700
+                border border-slate-300 shadow-2xs transition-all duration-150 items-center gap-1.5
+              "
+              title="Cargar o gestionar Hoja de Ruta PDF de Zoom"
+            >
+              <PdfNavIcon />
+              <span>Hoja de Ruta</span>
+              {hasManifest && (
+                <span className="w-2 h-2 rounded-full bg-emerald-500" title="Manifiesto cargado" />
+              )}
+            </button>
+
+            <div className="hidden sm:flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${onAuth ? 'bg-emerald-400' : 'bg-red-400'} animate-pulse`} />
               <span className="text-xs text-slate-600 font-medium">
                 {onAuth ? (currentUser?.displayName || 'Conectado') : 'No Autenticado'}
@@ -73,6 +91,17 @@ function UserNavIcon() {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
       <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function PdfNavIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" />
+      <line x1="16" y1="17" x2="8" y2="17" />
     </svg>
   );
 }

@@ -98,23 +98,35 @@ export function useGuides() {
       localStorage.setItem(CLEANUP_KEY, String(Date.now()));
     };
 
+    const handleUpdateGuide = (updatedGuide) => {
+      if (!updatedGuide?.id) return;
+      setGuides((prev) =>
+        prev.map((g) => (g.id === updatedGuide.id ? { ...g, ...updatedGuide } : g))
+      );
+    };
+
     socket.on("initialGuides", handleInitialGuides);
     socket.on("chatGuide", handleNewGuide);
+    socket.on("updateGuide", handleUpdateGuide);
     socket.on("guidesCleared", handleGuidesCleared);
 
     // Limpiar el evento cuando se desmonte o cambie la conexión/socket
     return () => {
       socket.off("initialGuides", handleInitialGuides);
       socket.off("chatGuide", handleNewGuide);
+      socket.off("updateGuide", handleUpdateGuide);
       socket.off("guidesCleared", handleGuidesCleared);
     };
   }, [onAuth, socket]);
 
   // ── Acciones ──────────────────────────────────────────────
-  const addGuide = useCallback((code) => {
+  const addGuide = useCallback((code, owner = '', serviceType = '', hasPayment = null) => {
     const entry = {
       id: crypto.randomUUID(),
       code,
+      owner,
+      serviceType: serviceType || '—',
+      hasPayment,
       timestamp: new Date().toISOString(),
     };
     setGuides((prev) => [...prev, entry]);
@@ -135,6 +147,20 @@ export function useGuides() {
     return entry;
   }, [onAuth, socket]);
 
+  const updateGuide = useCallback((id, updates) => {
+    setGuides((prev) =>
+      prev.map((g) => (g.id === id ? { ...g, ...updates } : g))
+    );
+
+    if (onAuth && socket) {
+      socket.emit("updateGuide", { id, ...updates }, (response) => {
+        if (response?.error) {
+          console.log("Error del servidor al actualizar guía:", response.error);
+        }
+      });
+    }
+  }, [onAuth, socket]);
+
   const removeGuide = useCallback((id) => {
     setGuides((prev) => prev.filter((g) => g.id !== id));
   }, []);
@@ -145,5 +171,5 @@ export function useGuides() {
     localStorage.setItem(CLEANUP_KEY, String(Date.now()));
   }, []);
 
-  return { guides, addGuide, removeGuide, clearAll };
+  return { guides, addGuide, updateGuide, removeGuide, clearAll };
 }

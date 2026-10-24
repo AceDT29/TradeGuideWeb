@@ -1,13 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 /**
  * GuideRow — single table row displaying one guide entry.
- * Shows: row number, formatted date+time, guide code (monospace), copy & delete actions.
+ * Shows: row number, formatted date+time, guide code (monospace), package owner, copy & delete actions.
  */
-export default function GuideRow({ guide, index, onCopy, onRemove }) {
+export default function GuideRow({ guide, index, onCopy, onRemove, onUpdate }) {
   const [copied, setCopied] = useState(false);
   const [rowCopied, setRowCopied] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [owner, setOwner] = useState(guide.owner || '');
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setOwner(guide.owner || '');
+  }, [guide.owner]);
 
   const { hour, minute, date } = formatTimestamp(guide.timestamp);
 
@@ -30,43 +36,162 @@ export default function GuideRow({ guide, index, onCopy, onRemove }) {
     handleRemove(e);
   };
 
+  const handleSaveOwner = () => {
+    const trimmed = owner.trim();
+    if (trimmed !== (guide.owner || '')) {
+      onUpdate?.(guide.id, { owner: trimmed });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1600);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveOwner();
+      e.target.blur();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setOwner(guide.owner || '');
+      e.target.blur();
+    }
+  };
+
   return (
     <tr
       className={`
         group border-b border-slate-200/70 transition-all duration-200
-        ${rowCopied ? 'bg-emerald-200/80 hover:bg-emerald-100/60' : 'hover:bg-blue-50/60'}
+        ${guide.delivered ? 'bg-slate-50/80 hover:bg-slate-100/70' : rowCopied ? 'bg-emerald-200/80 hover:bg-emerald-100/60' : 'hover:bg-blue-50/60'}
         ${leaving ? 'opacity-0 scale-y-95 origin-top' : 'animate-rowAppear'}
       `}
     >
-      {/* # */}
-      <td className="px-4 py-2.5 text-center">
+      {/* Checkbox Entregado (Desktop) */}
+      <td className="hidden sm:table-cell px-2 py-2.5 text-center whitespace-nowrap">
+        <label className="relative inline-flex items-center justify-center cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={Boolean(guide.delivered)}
+            onChange={(e) => {
+              onUpdate?.(guide.id, { delivered: e.target.checked });
+            }}
+            className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/30 cursor-pointer accent-emerald-600 transition-all"
+            title={guide.delivered ? 'Paquete entregado (clic para desmarcar)' : 'Marcar paquete como entregado'}
+          />
+        </label>
+      </td>
+
+      {/* # (Desktop) */}
+      <td className="hidden sm:table-cell px-2 py-2.5 text-center">
         <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-500 text-xs font-medium border border-slate-200">
           {index + 1}
         </span>
       </td>
 
-      {/* Fecha / Hora */}
-      <td className="px-4 py-2.5 whitespace-nowrap">
-        <div className="flex flex-col gap-0">
-          <span className="text-xs text-slate-700 font-medium">{hour}:{minute}</span>
-          <span className="text-[11px] text-slate-400">{date}</span>
+      {/* Fecha / Hora (Desktop compacta) */}
+      <td className="hidden sm:table-cell px-2 py-2.5 whitespace-nowrap">
+        <div className="flex flex-col gap-0 leading-tight">
+          <span className={`text-[11px] font-medium ${guide.delivered ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
+            {hour}:{minute}
+          </span>
+          <span className="text-[10px] text-slate-400">{date}</span>
         </div>
       </td>
 
-      {/* Guía */}
-      <td className="px-4 py-2.5">
-        <span
-          className="font-mono-guide text-sm font-medium tracking-widest text-blue-700
-            bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-lg
-            select-all"
-        >
-          {guide.code}
-        </span>
+      {/* Guía (Móvil y Desktop) */}
+      <td className="px-3 sm:px-4 py-2.5 whitespace-nowrap">
+        <div className="flex items-center gap-1.5">
+          <span
+            className={`
+              font-mono-guide text-sm font-medium tracking-widest px-2.5 py-1 rounded-lg select-all transition-all
+              ${
+                guide.delivered
+                  ? 'line-through text-slate-400 bg-slate-100/90 border border-slate-200'
+                  : 'text-blue-700 bg-blue-50 border border-blue-200'
+              }
+            `}
+          >
+            {guide.code}
+          </span>
+          {guide.delivered && (
+            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-1.5 py-0.5 rounded border border-emerald-200/60">
+              Entregado
+            </span>
+          )}
+        </div>
       </td>
 
-      {/* Acciones */}
-      <td className="px-4 py-2.5 text-right">
-        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+      {/* Dueño del paquete (Desktop expandido) */}
+      <td className="hidden sm:table-cell px-3 py-2.5">
+        <div className="relative flex items-center w-full max-w-sm group/input">
+          <div
+            className={`absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none transition-colors duration-150 ${
+              owner ? 'text-sky-600' : 'text-slate-400'
+            }`}
+          >
+            <UserIcon />
+          </div>
+          <input
+            type="text"
+            value={owner}
+            onChange={(e) => setOwner(e.target.value)}
+            onBlur={handleSaveOwner}
+            onKeyDown={handleKeyDown}
+            placeholder="+ Asignar dueño..."
+            className={`
+              w-full pl-7 pr-6 py-1 text-[11px] rounded-lg font-medium transition-all duration-150 outline-none
+              ${guide.delivered ? 'line-through text-slate-400 opacity-75' : ''}
+              ${
+                owner
+                  ? 'bg-sky-50/80 border border-sky-200/90 text-sky-950 font-semibold focus:bg-white focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 shadow-xs'
+                  : 'bg-slate-50/50 border border-dashed border-slate-300/80 text-slate-700 placeholder-slate-400 hover:bg-white hover:border-slate-300 focus:bg-white focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20'
+              }
+            `}
+            title="Escribe el nombre del dueño y presiona Enter o haz clic fuera para guardar"
+          />
+          {/* Right status icon */}
+          <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
+            {saved ? (
+              <span className="text-emerald-600 font-bold text-xs flex items-center" title="Guardado">
+                <CheckIcon />
+              </span>
+            ) : owner ? (
+              <span className="opacity-0 group-hover/input:opacity-50 text-slate-400 transition-opacity">
+                <PencilIcon />
+              </span>
+            ) : null}
+          </div>
+        </div>
+      </td>
+
+      {/* Tipo de Servicio (Desktop) */}
+      <td className="hidden sm:table-cell px-2 py-2.5 text-center whitespace-nowrap">
+        {guide.serviceType && guide.serviceType !== '—' ? (
+          <span className="inline-block px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-slate-100 text-slate-700 border border-slate-200">
+            {guide.serviceType}
+          </span>
+        ) : (
+          <span className="text-slate-300 text-xs">—</span>
+        )}
+      </td>
+
+      {/* Cobro / Pago (Desktop) */}
+      <td className="hidden sm:table-cell px-2 py-2.5 text-center whitespace-nowrap">
+        {guide.hasPayment === true ? (
+          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs">
+            Pago: Sí
+          </span>
+        ) : guide.hasPayment === false ? (
+          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+            Pago: No
+          </span>
+        ) : (
+          <span className="text-slate-300 text-xs">—</span>
+        )}
+      </td>
+
+      {/* Acciones (Móvil y Desktop) */}
+      <td className="px-3 sm:px-4 py-2.5 text-right whitespace-nowrap">
+        <div className="flex items-center justify-end gap-1.5 sm:gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-150">
           {/* Copy */}
           <button
             id={`copy-guide-${guide.id}`}
@@ -149,6 +274,26 @@ function TrashIcon() {
       <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
       <path d="M10 11v6M14 11v6" />
       <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    </svg>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+      <path d="m15 5 4 4" />
     </svg>
   );
 }

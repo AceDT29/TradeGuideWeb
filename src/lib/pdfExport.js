@@ -24,7 +24,7 @@ export function exportGuidesToPDF(guides) {
     doc.text(dateString, 14, 30);
   };
 
-  const tableColumn = ["#", "Fecha de Registro", "Nro. de Guía"];
+  const tableColumn = ["#", "Fecha de Registro", "Nro. de Guía", "Dueño del Paquete", "Tipo", "Cobro", "Estado"];
 
   // Chunk guides into arrays of 10
   const chunkedGuides = [];
@@ -42,10 +42,16 @@ export function exportGuidesToPDF(guides) {
     const tableRows = chunk.map((guide, localIndex) => {
       const globalIndex = pageIndex * 10 + localIndex;
       const dateObj = guide.timestamp ? new Date(guide.timestamp) : new Date();
+      const statusText = guide.delivered ? 'ENTREGADO' : 'Pendiente';
+
       return [
         globalIndex + 1,
         dateObj.toLocaleString(),
-        guide.code
+        guide.code,
+        guide.owner || '—',
+        guide.serviceType && guide.serviceType !== '—' ? guide.serviceType : '—',
+        guide.hasPayment === true ? 'Pago: Sí' : guide.hasPayment === false ? 'Pago: No' : '—',
+        statusText,
       ];
     });
 
@@ -54,9 +60,21 @@ export function exportGuidesToPDF(guides) {
       head: [tableColumn],
       body: tableRows,
       startY: 38,
-      styles: { fontSize: 10, cellPadding: 4 },
+      styles: { fontSize: 9, cellPadding: 3.5 },
       headStyles: { fillColor: [65, 114, 213] }, // Primary blue color matching app UI
       alternateRowStyles: { fillColor: [245, 247, 250] },
+      columnStyles: {
+        6: { fontStyle: 'bold' },
+      },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 6) {
+          if (data.cell.raw === 'ENTREGADO') {
+            data.cell.styles.textColor = [16, 185, 129]; // Emerald
+          } else {
+            data.cell.styles.textColor = [148, 163, 184]; // Slate 400
+          }
+        }
+      },
       margin: { top: 38 }
     });
   });
