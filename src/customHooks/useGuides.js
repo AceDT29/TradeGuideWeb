@@ -37,6 +37,26 @@ function loadInitialGuides() {
   }
 }
 
+const MANIFEST_STORAGE_KEY = 'tradeweb_zoom_manifest';
+
+function getActiveManifestMap() {
+  try {
+    const raw = localStorage.getItem(MANIFEST_STORAGE_KEY);
+    if (!raw) return new Map();
+    const list = JSON.parse(raw);
+    if (!Array.isArray(list)) return new Map();
+    const map = new Map();
+    for (const item of list) {
+      if (item?.code) {
+        map.set(String(item.code).trim(), item);
+      }
+    }
+    return map;
+  } catch {
+    return new Map();
+  }
+}
+
 /**
  * Hook principal: gestiona la lista de guías con persistencia en localStorage.
  * La carga inicial es síncrona (lazy initializer), la limpieza automática
@@ -62,21 +82,48 @@ export function useGuides() {
 
     const handleInitialGuides = (serverGuides) => {
       if (!Array.isArray(serverGuides)) return;
+      const manifestMap = getActiveManifestMap();
+      const updatesToEmit = [];
+
       setGuides((prev) => {
         const map = new Map();
         prev.forEach((g) => {
           const key = g.id || g.code;
           if (key) map.set(key, g);
         });
+
         serverGuides.forEach((g) => {
           if (!g) return;
           const key = g.id || g.code;
           if (key && !map.has(key)) {
-            map.set(key, g);
+            let enriched = g;
+            const codeKey = String(g.code || '').trim();
+            if ((!g.owner || g.owner.trim() === '') && manifestMap.has(codeKey)) {
+              const matched = manifestMap.get(codeKey);
+              enriched = {
+                ...g,
+                owner: matched.owner,
+                serviceType: matched.serviceType || g.serviceType || '—',
+                hasPayment: typeof matched.hasPayment === 'boolean' ? matched.hasPayment : g.hasPayment,
+              };
+              updatesToEmit.push(enriched);
+            }
+            map.set(key, enriched);
           }
         });
         return Array.from(map.values());
       });
+
+      if (updatesToEmit.length > 0) {
+        updatesToEmit.forEach((u) => {
+          socket.emit("updateGuide", {
+            id: u.id,
+            owner: u.owner,
+            serviceType: u.serviceType,
+            hasPayment: u.hasPayment,
+          });
+        });
+      }
     };
 
     const handleNewGuide = (newGuide) => {
@@ -85,10 +132,34 @@ export function useGuides() {
         handleInitialGuides(newGuide);
         return;
       }
+
+      const manifestMap = getActiveManifestMap();
+      let enriched = newGuide;
+      const codeKey = String(newGuide.code || '').trim();
+
+      if ((!newGuide.owner || newGuide.owner.trim() === '') && manifestMap.has(codeKey)) {
+        const matched = manifestMap.get(codeKey);
+        enriched = {
+          ...newGuide,
+          owner: matched.owner,
+          serviceType: matched.serviceType || newGuide.serviceType || '—',
+          hasPayment: typeof matched.hasPayment === 'boolean' ? matched.hasPayment : newGuide.hasPayment,
+        };
+
+        if (enriched.id) {
+          socket.emit("updateGuide", {
+            id: enriched.id,
+            owner: enriched.owner,
+            serviceType: enriched.serviceType,
+            hasPayment: enriched.hasPayment,
+          });
+        }
+      }
+
       setGuides((prev) => {
-        const exists = prev.some((g) => (g.id && g.id === newGuide.id) || (g.code && g.code === newGuide.code));
+        const exists = prev.some((g) => (g.id && g.id === enriched.id) || (g.code && g.code === enriched.code));
         if (exists) return prev;
-        return [...prev, newGuide];
+        return [...prev, enriched];
       });
     };
 
@@ -117,6 +188,77 @@ export function useGuides() {
       socket.off("updateGuide", handleUpdateGuide);
       socket.off("guidesCleared", handleGuidesCleared);
     };
+  }, [onAuth, socket]);
+
+  // ── Reconciliación con Manifiesto (Retroactiva y en Tiempo Real) ───────
+  const reconcileWithManifest = useCallback((manifestItems = null) => {
+    let items = manifestItems;
+    if (!items || !Array.isArray(items)) {
+      try {
+        const raw = localStorage.getItem(MANIFEST_STORAGE_KEY);
+        items = raw ? JSON.parse(raw) : [];
+      } catch {
+        items = [];
+      }
+    }
+
+    if (!Array.isArray(items) || items.length === 0) return 0;
+
+    const manifestMap = new Map();
+    for (const item of items) {
+      if (item?.code) {
+        manifestMap.set(String(item.code).trim(), item);
+      }
+    }
+
+    let updatedCount = 0;
+    const updatesToEmit = [];
+
+    setGuides((prev) => {
+      let changed = false;
+      const next = prev.map((g) => {
+        const codeKey = String(g.code || '').trim();
+        const matched = manifestMap.get(codeKey);
+        if (matched) {
+          const needsUpdate =
+            !g.owner ||
+            g.owner.trim() === '' ||
+            g.owner !== matched.owner ||
+            g.serviceType !== matched.serviceType ||
+            g.hasPayment !== matched.hasPayment;
+
+          if (needsUpdate) {
+            changed = true;
+            updatedCount++;
+            const updated = {
+              ...g,
+              owner: matched.owner,
+              serviceType: matched.serviceType || '—',
+              hasPayment: typeof matched.hasPayment === 'boolean' ? matched.hasPayment : null,
+            };
+            updatesToEmit.push(updated);
+            return updated;
+          }
+        }
+        return g;
+      });
+
+      return changed ? next : prev;
+    });
+
+    // Sincronizar en tiempo real con trade-server y otros clientes
+    if (onAuth && socket && updatesToEmit.length > 0) {
+      updatesToEmit.forEach((u) => {
+        socket.emit("updateGuide", {
+          id: u.id,
+          owner: u.owner,
+          serviceType: u.serviceType,
+          hasPayment: u.hasPayment,
+        });
+      });
+    }
+
+    return updatedCount;
   }, [onAuth, socket]);
 
   // ── Acciones ──────────────────────────────────────────────
@@ -171,5 +313,5 @@ export function useGuides() {
     localStorage.setItem(CLEANUP_KEY, String(Date.now()));
   }, []);
 
-  return { guides, addGuide, updateGuide, removeGuide, clearAll };
+  return { guides, addGuide, updateGuide, removeGuide, clearAll, reconcileWithManifest };
 }

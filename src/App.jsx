@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import GuideScanner from './components/GuideScanner';
 import GuideTable from './components/GuideTable';
@@ -12,8 +12,17 @@ import { useToast } from './customHooks/useToast';
 import guidesAdminBg from "./assets/guidesAdminBg.png";
 
 export default function App() {
-  const { guides, addGuide, updateGuide, removeGuide, clearAll } = useGuides();
   const {
+    guides,
+    addGuide,
+    updateGuide,
+    removeGuide,
+    clearAll,
+    reconcileWithManifest,
+  } = useGuides();
+
+  const {
+    manifest,
     manifestMeta,
     hasManifest,
     loadManifest,
@@ -26,6 +35,22 @@ export default function App() {
   const [showManifestModal, setShowManifestModal] = useState(false);
 
   const comparisonStats = getComparisonStats(guides);
+
+  // ── Reconciliación Reactiva en Tiempo Real ──────────────────
+  // Si hay un manifiesto activo y existen guías previamente analizadas / escaneadas
+  // que aún no tengan destinatario asignado, vincularlas automáticamente por código de guía.
+  useEffect(() => {
+    if (hasManifest && manifest.length > 0 && guides.length > 0) {
+      const hasUnassigned = guides.some((g) => {
+        if (g.owner && g.owner.trim() !== '') return false;
+        const matched = lookupGuide(g.code);
+        return Boolean(matched && matched.owner);
+      });
+      if (hasUnassigned) {
+        reconcileWithManifest(manifest);
+      }
+    }
+  }, [hasManifest, manifest, guides, lookupGuide, reconcileWithManifest]);
 
   // ── Event handlers ────────────────────────────────────────
 
@@ -50,6 +75,21 @@ export default function App() {
       } else {
         addToast(`Guía ${code} registrada`, 'success');
       }
+    }
+  };
+
+  const handleLoadManifest = (items, meta) => {
+    loadManifest(items, meta);
+    const updatedCount = reconcileWithManifest(items);
+    if (updatedCount > 0) {
+      addToast(
+        `Manifiesto aplicado: ${items.length} guías importadas (${updatedCount} ${
+          updatedCount === 1 ? 'guía escaneada previamente fue vinculada' : 'guías escaneadas previamente fueron vinculadas'
+        } con sus destinatarios)`,
+        'success'
+      );
+    } else {
+      addToast(`Manifiesto cargado: ${items.length} guías importadas`, 'success');
     }
   };
 
@@ -117,6 +157,7 @@ export default function App() {
               onAdd={handleAdd}
               onError={handleError}
               disabled={showClearModal || showManifestModal}
+              guides={guides}
             />
 
             <ManifestStatusBar
@@ -167,7 +208,7 @@ export default function App() {
         onClose={() => setShowManifestModal(false)}
         manifestMeta={manifestMeta}
         hasManifest={hasManifest}
-        onLoadManifest={loadManifest}
+        onLoadManifest={handleLoadManifest}
         onClearManifest={clearManifest}
         addToast={addToast}
       />

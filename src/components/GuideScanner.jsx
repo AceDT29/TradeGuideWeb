@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { useGuides } from "../customHooks/useGuides"
 import QRScannerModal from './QRScannerModal';
 import { playSuccessBeep, playErrorSound, playDuplicateSound } from '../lib/audio';
 
@@ -9,14 +8,13 @@ const GUIDE_LENGTH = 10;
  * GuideScanner — always-focused input that captures barcode scanner events.
  * Filters out non-numeric characters, validates exactly 10 digits on Enter.
  */
-export default function GuideScanner({ onAdd, onError, disabled = false }) {
+export default function GuideScanner({ onAdd, onError, disabled = false, guides = [] }) {
   const [value, setValue] = useState('');
   const valueRef = useRef(value);
   const [shake, setShake] = useState(false);
   const [focused, setFocus] = useState(true);
   const [showQR, setShowQR] = useState(false);
   const inputRef = useRef(null);
-  const { guides } = useGuides();
 
   // Keep valueRef synced for the global keydown listener
   useEffect(() => {

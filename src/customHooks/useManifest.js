@@ -77,7 +77,8 @@ export function useManifest() {
   const lookupGuide = useCallback(
     (code) => {
       if (!code || manifest.length === 0) return null;
-      const found = manifest.find((item) => item.code === code);
+      const clean = String(code).trim();
+      const found = manifest.find((item) => String(item.code).trim() === clean);
       return found || null;
     },
     [manifest]
@@ -86,17 +87,17 @@ export function useManifest() {
   // Compute comparison stats against currently scanned guides
   const getComparisonStats = useCallback(
     (scannedGuides = []) => {
-      const scannedCodes = new Set(scannedGuides.map((g) => g.code));
+      const scannedCodes = new Set(scannedGuides.map((g) => String(g.code).trim()));
 
       // Items from the manifest that have been scanned
-      const matched = manifest.filter((item) => scannedCodes.has(item.code));
+      const matched = manifest.filter((item) => scannedCodes.has(String(item.code).trim()));
       
       // Items from the manifest not yet scanned
-      const missing = manifest.filter((item) => !scannedCodes.has(item.code));
+      const missing = manifest.filter((item) => !scannedCodes.has(String(item.code).trim()));
 
       // Scanned guides not found in the manifest
-      const manifestCodes = new Set(manifest.map((item) => item.code));
-      const unmanifested = scannedGuides.filter((g) => !manifestCodes.has(g.code));
+      const manifestCodes = new Set(manifest.map((item) => String(item.code).trim()));
+      const unmanifested = scannedGuides.filter((g) => !manifestCodes.has(String(g.code).trim()));
 
       const totalExpected = manifest.length;
       const scannedCount = matched.length;

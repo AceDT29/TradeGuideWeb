@@ -28,16 +28,63 @@ export default function GuideTable({
     returnFocusToScanner();
   };
 
+  const hasManifest = Boolean(comparisonStats?.hasManifest);
+  // 'auto': orden alfabético A-Z si hay manifiesto activo, de lo contrario orden de escaneo
+  const [sortMode, setSortMode] = useState('auto');
+
+  const effectiveSort = sortMode === 'auto'
+    ? (hasManifest ? 'alpha-asc' : 'scan')
+    : sortMode;
+
+  // Al aplicar o suprimir el manifiesto, volver a la página 1
+  const prevManifestRef = useRef(hasManifest);
+  useEffect(() => {
+    if (prevManifestRef.current !== hasManifest) {
+      setCurrentPage(1);
+    }
+    prevManifestRef.current = hasManifest;
+  }, [hasManifest]);
+
+  const toggleOwnerSort = () => {
+    setSortMode((prev) => {
+      const current = prev === 'auto' ? (hasManifest ? 'alpha-asc' : 'scan') : prev;
+      if (current === 'scan') return 'alpha-asc';
+      if (current === 'alpha-asc') return 'alpha-desc';
+      return 'scan';
+    });
+  };
+
   const cleanSearch = searchTerm.trim().toLowerCase();
+
+  // Sort guides (alphabetical by owner when manifest is active or requested)
+  const sortedGuides = [...guides].sort((a, b) => {
+    if (effectiveSort === 'alpha-asc' || effectiveSort === 'alpha-desc') {
+      const ownerA = (a.owner || '').trim();
+      const ownerB = (b.owner || '').trim();
+
+      if (ownerA && ownerB) {
+        const comp = ownerA.localeCompare(ownerB, 'es', { sensitivity: 'base' });
+        if (comp !== 0) return effectiveSort === 'alpha-asc' ? comp : -comp;
+      } else if (ownerA && !ownerB) {
+        return -1; // Con dueño al inicio
+      } else if (!ownerA && ownerB) {
+        return 1;  // Sin dueño al final
+      }
+
+      return (a.code || '').localeCompare(b.code || '');
+    }
+
+    return 0; // Orden original de escaneo
+  });
 
   // Filter guides by search term (matches guide code or owner name)
   const filteredGuides = cleanSearch
-    ? guides.filter(
+    ? sortedGuides.filter(
         (g) =>
           g.code.toLowerCase().includes(cleanSearch) ||
           (g.owner && g.owner.toLowerCase().includes(cleanSearch))
       )
-    : guides;
+    : sortedGuides;
 
   const totalPages = Math.max(1, Math.ceil(filteredGuides.length / PAGE_SIZE));
   const startIdx = (currentPage - 1) * PAGE_SIZE;
@@ -48,14 +95,16 @@ export default function GuideTable({
     setCurrentPage(1);
   }, [searchTerm]);
 
-  // Auto-advance to last page when a new guide is added
+  // Auto-advance to last page when a new guide is added (only in scan order mode)
   useEffect(() => {
     const newLength = guides.length;
     if (newLength > prevLengthRef.current) {
-      setCurrentPage(Math.ceil(newLength / PAGE_SIZE));
+      if (effectiveSort === 'scan') {
+        setCurrentPage(Math.ceil(newLength / PAGE_SIZE));
+      }
     }
     prevLengthRef.current = newLength;
-  }, [guides.length]);
+  }, [guides.length, effectiveSort]);
 
   // If current page becomes empty after a deletion, go back one page
   useEffect(() => {
@@ -155,6 +204,23 @@ export default function GuideTable({
         {/* Header action buttons */}
         {!isEmpty && (
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            {/* Sort Toggle Button (Active when Manifest is loaded) */}
+            {hasManifest && (
+              <button
+                type="button"
+                onClick={toggleOwnerSort}
+                className="
+                  flex items-center gap-1.5 px-3 py-1.5 md:px-3.5 md:py-2 rounded-xl text-xs font-bold cursor-pointer
+                  bg-white/95 text-blue-700 border border-blue-200 hover:bg-blue-50 hover:shadow-md
+                  transition-all duration-150 shadow-sm select-none
+                "
+                title="Alternar orden: Alfabético A-Z / Z-A / Orden de escaneo"
+              >
+                <span>🔤</span>
+                <span>{effectiveSort === 'alpha-asc' ? 'A-Z' : effectiveSort === 'alpha-desc' ? 'Z-A' : 'Escaneo'}</span>
+              </button>
+            )}
+
             {/* Export PDF */}
             <button
               id="export-pdf-btn"
@@ -232,8 +298,26 @@ export default function GuideTable({
                   <th className="px-3 sm:px-4 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-widest w-36 sm:w-44">
                     Nro. de Guía
                   </th>
-                  <th className="hidden sm:table-cell px-3 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-widest min-w-[200px]">
-                    Dueño del paquete
+                  <th
+                    onClick={toggleOwnerSort}
+                    className="hidden sm:table-cell px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-widest min-w-[200px] cursor-pointer select-none transition-colors hover:text-blue-700"
+                    title="Haz clic para alternar orden alfabético"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span className={effectiveSort.startsWith('alpha') ? 'text-blue-700 font-bold' : 'text-slate-400'}>
+                        Dueño del paquete
+                      </span>
+                      {effectiveSort === 'alpha-asc' && (
+                        <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.2 rounded font-bold">
+                          A-Z ↓
+                        </span>
+                      )}
+                      {effectiveSort === 'alpha-desc' && (
+                        <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.2 rounded font-bold">
+                          Z-A ↑
+                        </span>
+                      )}
+                    </div>
                   </th>
                   <th className="hidden sm:table-cell px-2 py-2.5 text-center text-xs font-semibold text-slate-400 uppercase tracking-widest w-16">
                     Tipo
@@ -247,11 +331,11 @@ export default function GuideTable({
                 </tr>
               </thead>
               <tbody>
-                {pageGuides.map((guide) => (
+                {pageGuides.map((guide, idx) => (
                   <GuideRow
                     key={guide.id}
                     guide={guide}
-                    index={guides.findIndex((g) => g.id === guide.id)}  // Global row position
+                    index={startIdx + idx}
                     onCopy={onCopyOne}
                     onRemove={onRemove}
                     onUpdate={onUpdateGuide}
@@ -275,6 +359,9 @@ export default function GuideTable({
             <span className="text-white font-medium">{filteredGuides.length}</span>
             {cleanSearch ? ' guías filtradas' : ' guías'}
             {cleanSearch && <span className="text-white/60"> (de {guides.length} totales)</span>}
+            {effectiveSort.startsWith('alpha') && (
+              <span className="text-white/90 font-medium"> · Orden alfabético ({effectiveSort === 'alpha-asc' ? 'A-Z' : 'Z-A'})</span>
+            )}
             {' '}· Guardado auto
           </p>
 
