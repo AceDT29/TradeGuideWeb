@@ -1,13 +1,10 @@
-import { useState } from "react";
 import { useConnect } from "../customHooks/useConnect";
-import SessionModal from "./SessionModal";
 
 /**
  * Navbar — logo + app title + session button
  */
-export default function Navbar({ addToast, onOpenManifest, hasManifest }) {
+export default function Navbar({ onOpenSession, onOpenManifest, hasManifest }) {
   const { onAuth, currentUser } = useConnect();
-  const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
 
   return (
     <>
@@ -61,7 +58,7 @@ export default function Navbar({ addToast, onOpenManifest, hasManifest }) {
             </div>
 
             <button
-              onClick={() => setIsSessionModalOpen(true)}
+              onClick={onOpenSession}
               className="
                 px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer
                 bg-[#1a2640] hover:bg-[#1e3a5f] text-slate-300 hover:text-cyan-300
@@ -75,13 +72,6 @@ export default function Navbar({ addToast, onOpenManifest, hasManifest }) {
           </div>
         </div>
       </nav>
-
-      {/* Session Modal */}
-      <SessionModal
-        isOpen={isSessionModalOpen}
-        onClose={() => setIsSessionModalOpen(false)}
-        addToast={addToast}
-      />
     </>
   );
 }

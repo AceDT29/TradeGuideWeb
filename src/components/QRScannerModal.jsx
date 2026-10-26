@@ -145,6 +145,11 @@ export default function QRScannerModal({ existingGuides = [], onScan, onError, o
           () => { } // ignore scan failures (no QR detected in frame)
         );
 
+        if (!mountedRef.current) {
+          html5Qrcode.stop().then(() => html5Qrcode.clear()).catch((stopErr) => console.debug('Cleanup error:', stopErr));
+          return;
+        }
+
         // Only mark as started if .start() resolved successfully
         scannerStarted = true;
 
@@ -176,13 +181,19 @@ export default function QRScannerModal({ existingGuides = [], onScan, onError, o
           html5Qrcode
             .stop()
             .then(() => html5Qrcode.clear())
-            .catch(() => { });
+            .catch((stopErr) => {
+              console.debug('Error deteniendo escáner:', stopErr);
+            });
         } else if (html5Qrcode) {
           // Scanner was created but never started — just clear the DOM
-          try { html5Qrcode.clear(); } catch { }
+          try {
+            html5Qrcode.clear();
+          } catch (clearErr) {
+            console.debug('Error limpiando contenedor:', clearErr);
+          }
         }
-      } catch {
-        // Safety net — never let cleanup crash the app
+      } catch (cleanupErr) {
+        console.debug('Safety cleanup error:', cleanupErr);
       }
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

@@ -21,8 +21,10 @@ export default function SessionModal({ isOpen, onClose, addToast }) {
     // Reset errors and password visibility when modal opens or tab changes
     useEffect(() => {
         if (isOpen) {
-            setErrorMsg("");
-            setShowPassword(false);
+            queueMicrotask(() => {
+                setErrorMsg("");
+                setShowPassword(false);
+            });
         }
     }, [isOpen, isLogin]);
 
@@ -40,6 +42,7 @@ export default function SessionModal({ isOpen, onClose, addToast }) {
     const handleSwitchTab = (loginTab) => {
         setIsLogin(loginTab);
         setErrorMsg("");
+        setShowPassword(false);
         setFormData({ email: "", password: "", displayName: "", rememberMe: true });
     };
 
@@ -60,7 +63,9 @@ export default function SessionModal({ isOpen, onClose, addToast }) {
                 try {
                     const { data } = await getSessionAuthService();
                     if (data?.user) setCurrentUser?.(data.user);
-                } catch { }
+                } catch (sessionErr) {
+                    console.debug("No se pudo obtener perfil de usuario tras registro:", sessionErr);
+                }
 
                 setOnAuth(true);
                 addToast?.("¡Cuenta creada e inicio de sesión exitoso!", "success");
@@ -97,7 +102,9 @@ export default function SessionModal({ isOpen, onClose, addToast }) {
                 try {
                     const { data } = await getSessionAuthService();
                     if (data?.user) setCurrentUser?.(data.user);
-                } catch { }
+                } catch (sessionErr) {
+                    console.debug("No se pudo obtener perfil de usuario tras login:", sessionErr);
+                }
 
                 setOnAuth(true);
                 addToast?.("¡Sesión iniciada con éxito! Bienvenido.", "success");
