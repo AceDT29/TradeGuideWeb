@@ -53,7 +53,9 @@ export function playSuccessBeep() {
     const audio = new Audio('/audio/success-beep.mp3');
     audio.volume = 0.6;
     audio.play().catch(() => {});
-  } catch {}
+  } catch (err) {
+    console.debug('Error reproduciendo sonido de éxito:', err);
+  }
 }
 
 /**
@@ -63,8 +65,10 @@ export function playErrorSound() {
   try {
     const audio = new Audio('/audio/error-voice.mp3');
     audio.volume = 0.8;
-    audio.play().catch((e) => console.log('Audio error:', e));
-  } catch {}
+    audio.play().catch((e) => console.debug('Audio error:', e));
+  } catch (err) {
+    console.debug('Error reproduciendo sonido de error:', err);
+  }
 }
 
 /**
@@ -74,6 +78,8 @@ export function playDuplicateSound() {
   try {
     const audio = new Audio('/audio/duplicate-error-voice.mp3');
     audio.volume = 0.8;
-    audio.play().catch((e) => console.log('Audio error:', e));
-  } catch {}
+    audio.play().catch((e) => console.debug('Audio error:', e));
+  } catch (err) {
+    console.debug('Error reproduciendo sonido de duplicado:', err);
+  }
 }

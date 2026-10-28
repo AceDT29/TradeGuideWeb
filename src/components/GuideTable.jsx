@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import GuideRow from './GuideRow';
-import { exportGuidesToPDF } from '../lib/pdfExport';
 
 const PAGE_SIZE = 10;
 
@@ -25,6 +24,7 @@ export default function GuideTable({
 
   const clearSearch = () => {
     setSearchTerm('');
+    setCurrentPage(1);
     returnFocusToScanner();
   };
 
@@ -87,31 +87,29 @@ export default function GuideTable({
     : sortedGuides;
 
   const totalPages = Math.max(1, Math.ceil(filteredGuides.length / PAGE_SIZE));
-  const startIdx = (currentPage - 1) * PAGE_SIZE;
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIdx = (safeCurrentPage - 1) * PAGE_SIZE;
   const pageGuides = filteredGuides.slice(startIdx, startIdx + PAGE_SIZE);
 
-  // Reset to first page when search term changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
-
-  // Auto-advance to last page when a new guide is added (only in scan order mode)
+  // Auto-advance to last page when a new guide is added
   useEffect(() => {
     const newLength = guides.length;
     if (newLength > prevLengthRef.current) {
-      if (effectiveSort === 'scan') {
+      queueMicrotask(() => {
         setCurrentPage(Math.ceil(newLength / PAGE_SIZE));
-      }
+      });
     }
     prevLengthRef.current = newLength;
   }, [guides.length, effectiveSort]);
 
-  // If current page becomes empty after a deletion, go back one page
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(Math.max(1, totalPages));
+  const handleExportPDF = async () => {
+    try {
+      const { exportGuidesToPDF } = await import('../lib/pdfExport');
+      exportGuidesToPDF(filteredGuides);
+    } catch (err) {
+      console.error('Error exportando PDF:', err);
     }
-  }, [currentPage, totalPages]);
+  };
 
   const isEmpty = guides.length === 0;
   const isSearchEmpty = !isEmpty && filteredGuides.length === 0;
@@ -173,7 +171,10 @@ export default function GuideTable({
               ref={searchRef}
               type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Escape') {
                   e.preventDefault();
@@ -224,7 +225,7 @@ export default function GuideTable({
             {/* Export PDF */}
             <button
               id="export-pdf-btn"
-              onClick={() => exportGuidesToPDF(filteredGuides)}
+              onClick={handleExportPDF}
               className="
                 flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs font-semibold cursor-pointer
                 bg-white/95 text-slate-700 border border-white
@@ -373,7 +374,7 @@ export default function GuideTable({
               <button
                 id="page-prev-btn"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
+                disabled={safeCurrentPage === 1}
                 className="
                   flex items-center justify-center w-8 h-8 rounded-lg
                   text-slate-600 border border-white/60 bg-white/80
@@ -388,7 +389,7 @@ export default function GuideTable({
               </button>
 
               {/* Page pills */}
-              {buildPageRange(currentPage, totalPages).map((item, i) =>
+              {buildPageRange(safeCurrentPage, totalPages).map((item, i) =>
                 item === '…' ? (
                   <span key={`ellipsis-${i}`} className="px-1 text-white/60 text-xs select-none">…</span>
                 ) : (
@@ -399,12 +400,12 @@ export default function GuideTable({
                     className={`
                       w-8 h-8 rounded-lg text-xs font-medium cursor-pointer
                       border transition-all duration-150 shadow-sm
-                      ${item === currentPage
+                      ${item === safeCurrentPage
                         ? 'bg-blue-700 text-white border-blue-700 font-semibold shadow-md'
                         : 'bg-white/80 text-slate-600 border-white/60 hover:text-blue-700 hover:border-blue-300 hover:bg-white'
                       }
                     `}
-                    aria-current={item === currentPage ? 'page' : undefined}
+                    aria-current={item === safeCurrentPage ? 'page' : undefined}
                   >
                     {item}
                   </button>
@@ -415,7 +416,7 @@ export default function GuideTable({
               <button
                 id="page-next-btn"
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
+                disabled={safeCurrentPage === totalPages}
                 className="
                   flex items-center justify-center w-8 h-8 rounded-lg
                   text-slate-600 border border-white/60 bg-white/80

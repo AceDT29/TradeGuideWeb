@@ -1,5 +1,6 @@
-import { createContext, useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { io } from "socket.io-client";
+import { ConectionContext } from "./conectionContextInstance";
 import {
     getSessionAuthService,
     logoutAuthService,
@@ -8,7 +9,6 @@ import {
 } from "../services/authServices";
 
 const socketUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
-export const ConectionContext = createContext();
 
 export function ConnectContext({ children }) {
     const [onAuth, setOnAuth] = useState(() => Boolean(localStorage.getItem('token')));
@@ -44,6 +44,8 @@ export function ConnectContext({ children }) {
     }, [socket]);
 
     useEffect(() => {
+        let isCancelled = false;
+
         if (onAuth) {
             const token = localStorage.getItem('token');
             const officeId = localStorage.getItem('officeId');
@@ -51,12 +53,12 @@ export function ConnectContext({ children }) {
             // Cargar datos del usuario
             getSessionAuthService()
                 .then(res => {
-                    if (res?.data?.user) {
+                    if (!isCancelled && res?.data?.user) {
                         setCurrentUser(res.data.user);
                     }
                 })
-                .catch(() => {
-                    // Si falla y no pudo refrescarse, el interceptor ya habrá disparado unauthorized
+                .catch((err) => {
+                    console.debug("Sesión no disponible:", err);
                 });
 
             // Conexión del Socket con credenciales
@@ -75,21 +77,28 @@ export function ConnectContext({ children }) {
                 withCredentials: true
             });
 
-            setSocket(newSocket);
             newSocket.on("connect", () => {
                 console.log("[TradeWeb Socket] Conectado al servidor de guías");
             });
 
+            queueMicrotask(() => {
+                if (!isCancelled) {
+                    setSocket(newSocket);
+                }
+            });
+
             return () => {
+                isCancelled = true;
                 newSocket.disconnect();
                 setSocket(null);
             };
         } else {
-            if (socket) {
-                socket.disconnect();
-            }
-            setSocket(null);
-            setCurrentUser(null);
+            queueMicrotask(() => {
+                if (!isCancelled) {
+                    setSocket(null);
+                    setCurrentUser(null);
+                }
+            });
         }
     }, [onAuth]);
 

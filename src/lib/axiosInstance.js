@@ -14,7 +14,7 @@ export const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
-        if (token && !config.headers.Authorization) {
+        if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
@@ -72,6 +72,7 @@ axiosInstance.interceptors.response.use(
             }
 
             if (isRefreshing) {
+                originalRequest._retry = true;
                 // Encolar peticiones mientras se completa el refresco activo
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import QRScannerModal from './QRScannerModal';
 import { playSuccessBeep, playErrorSound, playDuplicateSound } from '../lib/audio';
 
@@ -8,7 +8,7 @@ const GUIDE_LENGTH = 10;
  * GuideScanner — always-focused input that captures barcode scanner events.
  * Filters out non-numeric characters, validates exactly 10 digits on Enter.
  */
-export default function GuideScanner({ onAdd, onError, disabled = false, guides = [] }) {
+export default function GuideScanner({ guides = [], onAdd, onError, disabled = false }) {
   const [value, setValue] = useState('');
   const valueRef = useRef(value);
   const [shake, setShake] = useState(false);
@@ -20,6 +20,42 @@ export default function GuideScanner({ onAdd, onError, disabled = false, guides 
   useEffect(() => {
     valueRef.current = value;
   }, [value]);
+
+  const triggerShake = useCallback(() => {
+    setShake(true);
+    setTimeout(() => setShake(false), 450);
+  }, []);
+
+  const submitValue = useCallback((val) => {
+    const trimmed = val.trim();
+
+    if (trimmed.length === 0) return;
+
+    // Validación estricta para guías Zoom:
+    // - 9 dígitos que empiezan con 9 (ej: 980400009)
+    // - 10 dígitos que empiezan con 1 o 2 (ej: 1680635235, 2000000000)
+    const isValidZoomGuide = /^(9\d{8}|[12]\d{9})$/.test(trimmed);
+
+    if (!isValidZoomGuide) {
+      playErrorSound();
+      onError?.(`Código ignorado (no es una guía válida de Zoom): ${trimmed}`);
+      triggerShake();
+      setValue('');
+      return;
+    }
+
+    if (guides.some((g) => g.code === trimmed)) {
+      playDuplicateSound();
+      onError?.(`Código ignorado (ya existe en la lista): ${trimmed}`);
+      triggerShake();
+      setValue('');
+      return;
+    }
+
+    playSuccessBeep();
+    onAdd?.(trimmed);
+    setValue('');
+  }, [guides, onAdd, onError, triggerShake]);
 
   // Keep focus on the input whenever the user clicks anywhere,
   // EXCEPT when the click lands on another focusable input/textarea
@@ -44,14 +80,12 @@ export default function GuideScanner({ onAdd, onError, disabled = false, guides 
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
       if (disabled) return;
+      if (document.querySelector('.fixed.inset-0, [role="dialog"], [aria-modal="true"]')) return;
 
       // If we are already focused on the scanner input, let its own handlers deal with it
       if (document.activeElement === inputRef.current) return;
 
       // ── Pause for any other focused input / textarea ──────────────────────
-      // This allows the search/indexer in GuideTable to receive keystrokes
-      // without interference. Priority is restored as soon as the other input
-      // loses focus (blur) or the user presses Escape (handled in GuideTable).
       const active = document.activeElement;
       if (
         active &&
@@ -77,7 +111,7 @@ export default function GuideScanner({ onAdd, onError, disabled = false, guides 
 
     document.addEventListener('keydown', handleGlobalKeyDown);
     return () => document.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [disabled, onAdd, onError]);
+  }, [disabled, submitValue]);
 
   const handleChange = (e) => {
     // Strip non-alphanumeric, cap at 10 chars
@@ -88,47 +122,9 @@ export default function GuideScanner({ onAdd, onError, disabled = false, guides 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      submit();
+      submitValue(value);
     }
   };
-
-  const triggerShake = () => {
-    setShake(true);
-    setTimeout(() => setShake(false), 450);
-  };
-
-  const submitValue = (val) => {
-    const trimmed = val.trim();
-
-    if (trimmed.length === 0) return;
-
-    // Validación estricta para guías Zoom:
-    // - 9 dígitos que empiezan con 9 (ej: 980400009)
-    // - 10 dígitos que empiezan con 1 o 2 (ej: 1680635235, 2000000000)
-    const isValidZoomGuide = /^(9\d{8}|[12]\d{9})$/.test(trimmed);
-
-    if (!isValidZoomGuide) {
-      playErrorSound();
-      onError(`Código ignorado (no es una guía válida de Zoom): ${trimmed}`);
-      triggerShake();
-      setValue('');
-      return;
-    }
-
-    if (guides.some((g) => g.code === trimmed)) {
-      playDuplicateSound();
-      onError(`Código ignorado (ya existe en la lista): ${trimmed}`);
-      triggerShake();
-      setValue('');
-      return;
-    }
-
-    playSuccessBeep();
-    onAdd(trimmed);
-    setValue('');
-  };
-
-  const submit = () => submitValue(value);
 
   const progress = (value.length / GUIDE_LENGTH) * 100;
   const isFull = value.length === GUIDE_LENGTH;

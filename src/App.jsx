@@ -5,10 +5,12 @@ import GuideTable from './components/GuideTable';
 import ClearAllModal from './components/ClearAllModal';
 import ManifestModal from './components/ManifestModal';
 import ManifestStatusBar from './components/ManifestStatusBar';
+import SessionModal from './components/SessionModal';
 import Toast from './components/Toast';
 import { useGuides } from './customHooks/useGuides';
 import { useManifest } from './customHooks/useManifest';
 import { useToast } from './customHooks/useToast';
+import { copyToClipboard } from './lib/clipboard';
 import guidesAdminBg from "./assets/guidesAdminBg.png";
 
 export default function App() {
@@ -33,6 +35,7 @@ export default function App() {
   const { toasts, addToast, removeToast } = useToast();
   const [showClearModal, setShowClearModal] = useState(false);
   const [showManifestModal, setShowManifestModal] = useState(false);
+  const [showSessionModal, setShowSessionModal] = useState(false);
 
   const comparisonStats = getComparisonStats(guides);
 
@@ -97,29 +100,31 @@ export default function App() {
     addToast(msg, 'error');
   };
 
-  const handleCopyOne = (code) => {
-    navigator.clipboard.writeText(code).then(() => {
+  const handleCopyOne = async (code) => {
+    const success = await copyToClipboard(code);
+    if (success) {
       addToast(`${code} copiada al portapapeles`, 'success');
-    }).catch(() => {
+    } else {
       addToast('No se pudo copiar al portapapeles', 'error');
-    });
+    }
   };
 
-  const handleCopyAll = (targetGuides) => {
+  const handleCopyAll = async (targetGuides) => {
     const listToCopy = Array.isArray(targetGuides) ? targetGuides : guides;
     if (listToCopy.length === 0) {
       addToast('No hay guías para copiar', 'error');
       return;
     }
     const text = listToCopy.map((g) => g.code).join('\n');
-    navigator.clipboard.writeText(text).then(() => {
+    const success = await copyToClipboard(text);
+    if (success) {
       addToast(
         `${listToCopy.length} ${listToCopy.length === 1 ? 'guía copiada' : 'guías copiadas'}`,
         'success'
       );
-    }).catch(() => {
+    } else {
       addToast('No se pudo copiar al portapapeles', 'error');
-    });
+    }
   };
 
   const handleClearAll = () => {
@@ -145,7 +150,7 @@ export default function App() {
     <div className="min-h-screen relative overflow-x-hidden bg-[#15A2E4] flex flex-col justify-between">
       <div className="relative z-10 flex flex-col flex-1">
         <Navbar
-          addToast={addToast}
+          onOpenSession={() => setShowSessionModal(true)}
           onOpenManifest={() => setShowManifestModal(true)}
           hasManifest={hasManifest}
         />
@@ -154,10 +159,10 @@ export default function App() {
           <section className="flex mx-auto flex-col gap-5 max-w-4xl">
 
             <GuideScanner
+              guides={guides}
               onAdd={handleAdd}
               onError={handleError}
-              disabled={showClearModal || showManifestModal}
-              guides={guides}
+              disabled={showClearModal || showManifestModal || showSessionModal}
             />
 
             <ManifestStatusBar
@@ -213,9 +218,15 @@ export default function App() {
         addToast={addToast}
       />
 
+      {/* User Session Modal */}
+      <SessionModal
+        isOpen={showSessionModal}
+        onClose={() => setShowSessionModal(false)}
+        addToast={addToast}
+      />
+
       {/* Toast notifications */}
       <Toast toasts={toasts} onRemove={removeToast} />
     </div>
   );
 }
-

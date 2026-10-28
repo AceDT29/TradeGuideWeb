@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 /**
  * GuideRow — single table row displaying one guide entry.
@@ -10,10 +10,21 @@ export default function GuideRow({ guide, index, onCopy, onRemove, onUpdate }) {
   const [leaving, setLeaving] = useState(false);
   const [owner, setOwner] = useState(guide.owner || '');
   const [saved, setSaved] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const deleteTimerRef = useRef(null);
 
   useEffect(() => {
+    return () => {
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current);
+    };
+  }, []);
+
+  const [prevGuideOwner, setPrevGuideOwner] = useState(guide.owner || '');
+
+  if (guide.owner !== prevGuideOwner) {
+    setPrevGuideOwner(guide.owner || '');
     setOwner(guide.owner || '');
-  }, [guide.owner]);
+  }
 
   const { hour, minute, date } = formatTimestamp(guide.timestamp);
 
@@ -26,13 +37,27 @@ export default function GuideRow({ guide, index, onCopy, onRemove, onUpdate }) {
   };
 
   const handleRemove = (e) => {
-    e.stopPropagation();
+    e?.stopPropagation?.();
     setLeaving(true);
     setTimeout(() => onRemove(guide.id), 240);
   };
 
+  const handleDeleteClick = (e) => {
+    e.stopPropagation();
+    if (confirmDelete) {
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current);
+      handleRemove(e);
+    } else {
+      setConfirmDelete(true);
+      deleteTimerRef.current = setTimeout(() => {
+        setConfirmDelete(false);
+      }, 3000);
+    }
+  };
+
   const handleRemoveDoubleClick = (e) => {
     e.stopPropagation();
+    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current);
     handleRemove(e);
   };
 
@@ -223,23 +248,24 @@ export default function GuideRow({ guide, index, onCopy, onRemove, onUpdate }) {
             {copied ? 'Copiada' : 'Copiar'}
           </button>
 
-          {/* Delete — double click required */}
+          {/* Delete — 1-click confirmation or double-click */}
           <button
             id={`delete-guide-${guide.id}`}
+            onClick={handleDeleteClick}
             onDoubleClick={handleRemoveDoubleClick}
-            onClick={(e) => e.stopPropagation()}
-            title="Doble clic para eliminar"
-            className="
-              flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium
-              bg-white text-slate-400 border border-slate-200 cursor-pointer
-              hover:text-red-500 hover:border-red-300 hover:bg-red-50
-              active:scale-95
-              transition-all duration-150
-            "
+            title={confirmDelete ? "Haz clic para confirmar eliminación" : "Borrar guía (doble clic o clic para confirmar)"}
+            className={`
+              flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer
+              transition-all duration-150 active:scale-95
+              ${confirmDelete
+                ? 'bg-red-500 text-white border-red-600 shadow-xs animate-pulse font-semibold'
+                : 'bg-white text-slate-400 border-slate-200 hover:text-red-500 hover:border-red-300 hover:bg-red-50'
+              }
+            `}
           >
             <TrashIcon />
-            <span>Borrar</span>
-            <span className="text-[10px] text-slate-300 font-normal">×2</span>
+            <span>{confirmDelete ? '¿Eliminar?' : 'Borrar'}</span>
+            {!confirmDelete && <span className="text-[10px] text-slate-300 font-normal">×2</span>}
           </button>
         </div>
       </td>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { copyToClipboard } from '../lib/clipboard';
 
 /**
  * ManifestStatusBar — displays real-time comparison progress between
@@ -62,17 +63,21 @@ export default function ManifestStatusBar({
       )
     : missing;
 
-  const handleCopyOneMissing = (code) => {
-    navigator.clipboard.writeText(code);
-    setCopiedItemCode(code);
-    setTimeout(() => setCopiedItemCode(null), 1800);
+  const handleCopyOneMissing = async (code) => {
+    const success = await copyToClipboard(code);
+    if (success) {
+      setCopiedItemCode(code);
+      setTimeout(() => setCopiedItemCode(null), 1800);
+    }
   };
 
-  const handleCopyAllMissing = () => {
+  const handleCopyAllMissing = async () => {
     const text = missing.map((m) => `${m.code}\t${m.owner}\t${m.serviceType}\t${m.hasPayment ? 'Pago: Sí' : 'Pago: No'}`).join('\n');
-    navigator.clipboard.writeText(text);
-    setAllCopied(true);
-    setTimeout(() => setAllCopied(false), 2000);
+    const success = await copyToClipboard(text);
+    if (success) {
+      setAllCopied(true);
+      setTimeout(() => setAllCopied(false), 2000);
+    }
   };
 
   const missingWithPay = missing.filter((m) => m.hasPayment).length;

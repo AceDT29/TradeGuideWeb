@@ -3,13 +3,18 @@ import pdfjsWorker from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 
 // Polyfill Uint8Array.prototype.toHex if the browser engine does not yet implement it
 if (typeof Uint8Array.prototype.toHex !== 'function') {
-  Uint8Array.prototype.toHex = function () {
-    let hex = '';
-    for (let i = 0; i < this.length; i++) {
-      hex += this[i].toString(16).padStart(2, '0');
-    }
-    return hex;
-  };
+  Object.defineProperty(Uint8Array.prototype, 'toHex', {
+    value: function () {
+      let hex = '';
+      for (let i = 0; i < this.length; i++) {
+        hex += this[i].toString(16).padStart(2, '0');
+      }
+      return hex;
+    },
+    writable: true,
+    configurable: true,
+    enumerable: false,
+  });
 }
 
 // Configure the worker source using Vite's URL asset import
