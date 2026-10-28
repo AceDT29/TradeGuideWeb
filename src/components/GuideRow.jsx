@@ -124,23 +124,36 @@ export default function GuideRow({ guide, index, onCopy, onRemove, onUpdate }) {
 
       {/* Guía (Móvil y Desktop) */}
       <td className="px-3 sm:px-4 py-2.5 whitespace-nowrap">
-        <div className="flex items-center gap-1.5">
-          <span
-            className={`
-              font-mono-guide text-sm font-medium tracking-widest px-2.5 py-1 rounded-lg select-all transition-all
-              ${
-                guide.delivered
-                  ? 'line-through text-slate-400 bg-slate-100/90 border border-slate-200'
-                  : 'text-blue-700 bg-blue-50 border border-blue-200'
-              }
-            `}
-          >
-            {guide.code}
-          </span>
-          {guide.delivered && (
-            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-1.5 py-0.5 rounded border border-emerald-200/60">
-              Entregado
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`
+                font-mono-guide text-sm font-medium tracking-widest px-2.5 py-1 rounded-lg select-all transition-all
+                ${
+                  guide.delivered
+                    ? 'line-through text-slate-400 bg-slate-100/90 border border-slate-200'
+                    : 'text-blue-700 bg-blue-50 border border-blue-200'
+                }
+              `}
+            >
+              {guide.code}
             </span>
+            {guide.delivered && (
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-1.5 py-0.5 rounded border border-emerald-200/60">
+                Entregado
+              </span>
+            )}
+          </div>
+          {/* Subtítulo en móvil: dueño y cobro */}
+          {guide.owner && (
+            <div className="sm:hidden flex items-center gap-1 text-[10px] text-slate-600 font-semibold truncate max-w-[170px]">
+              <span className="truncate">👤 {guide.owner}</span>
+              {guide.hasPayment === true && (
+                <span className="text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300 px-1 py-0.2 rounded-full whitespace-nowrap">
+                  Cobro
+                </span>
+              )}
+            </div>
           )}
         </div>
       </td>
